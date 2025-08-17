@@ -1,6 +1,6 @@
 ﻿const std = @import("std");
 
-const Build = std.build;
+const Build = std.Build;
 
 const Options = struct {
     enable_asserts: bool = false,
@@ -15,37 +15,30 @@ pub fn compile(options: Options, b: *Build, lib: *Build.Step.Compile) void {
 
     lib.strip = lib.optimize != .Debug;
 
-    const flags= &.{
-       "-g",
-       "-std=c++17",
-       "-fdeclspec",
-       "-DJPH_SHARED_LIBRARY_BUILD",
-       if (options.use_double_precision) "-DJPH_DOUBLE_PRECISION" else "",
-       if (options.enable_asserts or lib.optimize == .Debug) "-DJPH_ENABLE_ASSERTS" else "",
-       if (options.enable_cross_platform_determinism) "-DJPH_CROSS_PLATFORM_DETERMINISTIC" else "",
-       if (options.enable_debug_renderer) "-DJPH_DEBUG_RENDERER" else "",
+    const flags = &.{
+        "-g",
+        "-std=c++17",
+        "-fdeclspec",
+        "-DJPH_SHARED_LIBRARY_BUILD",
+        if (options.use_double_precision) "-DJPH_DOUBLE_PRECISION" else "",
+        if (options.enable_asserts or lib.optimize == .Debug) "-DJPH_ENABLE_ASSERTS" else "",
+        if (options.enable_cross_platform_determinism) "-DJPH_CROSS_PLATFORM_DETERMINISTIC" else "",
+        if (options.enable_debug_renderer) "-DJPH_DEBUG_RENDERER" else "",
     };
 
     // add joltc sources
 
     const joltc_dir = "lib/joltc/";
 
-    lib.addIncludePath(.{
-        .path = joltc_dir
-    });
+    lib.addIncludePath(.{ .path = joltc_dir });
 
-    lib.addCSourceFiles(&.{
-        joltc_dir ++ "joltc.cpp",
-        joltc_dir ++ "joltc_assert.cpp"
-    }, flags);
+    lib.addCSourceFiles(&.{ joltc_dir ++ "joltc.cpp", joltc_dir ++ "joltc_assert.cpp" }, flags);
 
     // add jolt sources
 
     const jolt_dir = "lib/jolt/";
 
-    lib.addIncludePath(.{
-        .path = jolt_dir
-    });
+    lib.addIncludePath(.{ .path = jolt_dir });
 
     lib.addCSourceFiles(&.{
         jolt_dir ++ "Jolt/RegisterTypes.cpp",
@@ -190,7 +183,7 @@ pub fn build(b: *Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const options = Options {
+    const options = Options{
         .use_double_precision = b.option(bool, "use_double_precision", "use double precision") orelse false,
         .enable_asserts = b.option(bool, "enable_asserts", "enable asserts") orelse false,
         .enable_debug_renderer = b.option(bool, "enable_debug_renderer", "enable debug renderer") orelse false,

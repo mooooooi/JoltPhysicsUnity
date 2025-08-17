@@ -52,11 +52,13 @@ namespace Jolt.Native
             }
             else if (IsLinux())
             {
-                libname = "linux-x64\\libjoltc.so";
+                libname = "linux-x64/libjoltc.so";
             }
             else if (IsMacOS())
             {
-                libname = "macos-x64\\libjoltc.dylib";
+                libname = !IsArm64() 
+                    ? "macos-x64/libjoltc.dylib"
+                    : "macos-arm64/libjoltc.dylib";
             }
             else
             {
@@ -117,6 +119,11 @@ namespace Jolt.Native
         private static bool IsMacOS()
         {
             return RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
+        }
+
+        private static bool IsArm64()
+        {
+            return RuntimeInformation.OSArchitecture == Architecture.Arm64;
         }
 
         private static string[] EditorLibraryPaths()
