@@ -38,6 +38,6 @@ jobs:
       working-directory: Jolt.Native~
       
     - name: Build
-      # run: dotnet build --no-restore
-      run: dotnet ClangSharpPInvokeGenerator
+      run: dotnet build --no-restore
+      # run: dotnet ClangSharpPInvokeGenerator
       working-directory: Jolt.Native~
