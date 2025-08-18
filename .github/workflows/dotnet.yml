@@ -21,6 +21,8 @@ jobs:
       with:
         dotnet-version: 8.0.x
     - name: Restore dependencies
-      run: cd ./Jolt.Native~ && dotnet restore
+      run: dotnet restore
+      working-directory: Jolt.Native~
     - name: Build
       run: dotnet build --no-restore
+      working-directory: Jolt.Native~
