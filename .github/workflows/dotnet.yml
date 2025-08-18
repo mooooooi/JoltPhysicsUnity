@@ -26,7 +26,7 @@ jobs:
           9.0.x
       
     - name: Restore Cache Zig Cache
-      uses: actions/cache/restore@v4
+      uses: actions/cache/@v4
       with:
         path: Jolt.Native~/zig-cache
         key: ${{ runner.os }}-zig-cache
@@ -41,14 +41,6 @@ jobs:
       run: dotnet build --no-restore
       # run: dotnet ClangSharpPInvokeGenerator --include-directory "/home/runner/.nuget/packages/vezel.zig.toolsets.linux-x64/0.11.0.1/tools/lib/include" -f lib/joltc/joltc.h -n Jolt -m UnsafeBindings -l joltc -o ../Jolt/Bindings/UnsafeBindings.g.cs "@clangsharp.rsp"
       working-directory: Jolt.Native~
-
-
-    - name: Save Cache Zig Cache
-      uses: actions/cache/save@v4
-      continue-on-error: true
-      with:
-        path: Jolt.Native~/zig-cache
-        key: ${{ runner.os }}-zig-cache
 
     - uses: actions/upload-artifact@v4
       with:
