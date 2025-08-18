@@ -38,8 +38,8 @@ jobs:
       working-directory: Jolt.Native~
       
     - name: Build
-      # run: dotnet build --no-restore
-      run: dotnet ClangSharpPInvokeGenerator --include-directory "/home/runner/.nuget/packages/vezel.zig.toolsets.linux-x64/0.11.0.1/tools/lib/include" -f lib/joltc/joltc.h -n Jolt -m UnsafeBindings -l joltc -o ../Jolt/Bindings/UnsafeBindings.g.cs "@clangsharp.rsp"
+      run: dotnet build --no-restore
+      # run: dotnet ClangSharpPInvokeGenerator --include-directory "/home/runner/.nuget/packages/vezel.zig.toolsets.linux-x64/0.11.0.1/tools/lib/include" -f lib/joltc/joltc.h -n Jolt -m UnsafeBindings -l joltc -o ../Jolt/Bindings/UnsafeBindings.g.cs "@clangsharp.rsp"
       working-directory: Jolt.Native~
 
 
