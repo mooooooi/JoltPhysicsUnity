@@ -1,0 +1,48 @@
+# This workflow will build a .NET project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
+
+name: .NET
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with: 
+          submodules: true
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          8.0.x
+          9.0.x
+      
+    - name: Restore Cache Zig Cache
+      uses: actions/cache/@v4
+      with:
+        path: Jolt.Native~/zig-cache
+        key: ${{ runner.os }}-zig-cache
+        
+    - name: Restore dependencies
+      run: |
+        dotnet restore
+        dotnet tool restore
+      working-directory: Jolt.Native~
+      
+    - name: Build
+      run: dotnet build --no-restore
+      # run: dotnet ClangSharpPInvokeGenerator --include-directory "/home/runner/.nuget/packages/vezel.zig.toolsets.linux-x64/0.11.0.1/tools/lib/include" -f lib/joltc/joltc.h -n Jolt -m UnsafeBindings -l joltc -o ../Jolt/Bindings/UnsafeBindings.g.cs "@clangsharp.rsp"
+      working-directory: Jolt.Native~
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: buld
+        path: Jolt.Native~/out
