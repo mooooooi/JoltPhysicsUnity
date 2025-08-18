@@ -25,8 +25,14 @@ jobs:
           8.0.x
           9.0.x
     - name: Install tools
-      run: dotnet tool install --global ClangSharpPInvokeGenerator --version 20.1.2.1
-    - uses: Hanaasagi/zig-action-cache@master
+      run: |
+        dotnet tool install --global ClangSharpPInvokeGenerator --version 20.1.2.1
+        echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
+    - name: Cache Zig Cache
+      uses: actions/cache@v4
+      with:
+        path: Jolt.Native~/zig-cache
+        key: ${{ runner.os }}-zig-cache
     - name: Restore dependencies
       run: dotnet restore
       working-directory: Jolt.Native~
