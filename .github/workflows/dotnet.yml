@@ -43,7 +43,7 @@ jobs:
     - name: Set LD_LIBRARY_PATH for libclangsharp
       run: |
         # 查找 libclangsharp.so 文件的完整路径
-        LIB_PATH=$(find "$(pwd)/.tools" -name "libclangsharp.so")
+        LIB_PATH=$(dpkg -L libclang-15-dev | grep 'libclangsharp.so')
         # 获取该文件所在的目录
         LIB_DIR=$(dirname "$LIB_PATH")
         # 将该目录添加到 LD_LIBRARY_PATH，并输出到 GITHUB_ENV 文件中
