@@ -21,6 +21,6 @@ jobs:
       with:
         dotnet-version: 8.0.x
     - name: Restore dependencies
-      run: dotnet restore
+      run: cd Joit.Native~ && dotnet restore
     - name: Build
       run: dotnet build --no-restore
