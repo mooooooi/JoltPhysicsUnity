@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "dependencies": {
+    ".NETStandard,Version=v2.1": {
+      "libclang": {
+        "type": "Direct",
+        "requested": "[20.1.2, )",
+        "resolved": "20.1.2",
+        "contentHash": "1A3NeS7Ko3KOZG14BuZv0ajii1y7yBEozKgYwZSG4xzGUc8kyKyVaX0KkzVHY+/jSPKvOgUuLONGDuJn0lGfsA=="
+      },
+      "Vezel.Zig.Toolsets.win-x64": {
+        "type": "Direct",
+        "requested": "[0.11.0.1, )",
+        "resolved": "0.11.0.1",
+        "contentHash": "WrXEY88//yzU0XlYPnYoalPR8FjvQzfdcfHeeuXtswNL39gIHzAjMxEEKOmdjXR8ToUd8AP9CrV5jvVv07osMw=="
+      }
+    }
+  }
+}

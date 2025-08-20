@@ -24,6 +24,8 @@ jobs:
         dotnet-version: |
           8.0.x
           9.0.x
+        cache: true
+        cache-dependency-path: Jolt.Native~/packages.lock.json
       
     - name: Restore Cache Zig Cache
       uses: actions/cache/@v4
@@ -33,7 +35,7 @@ jobs:
         
     - name: Restore dependencies
       run: |
-        dotnet restore
+        dotnet restore --locked-mode
         dotnet tool restore
       working-directory: Jolt.Native~
       
