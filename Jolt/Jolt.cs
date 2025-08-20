@@ -1,13 +1,16 @@
-﻿using static Jolt.Bindings;
+﻿using Unity.Burst;
+using static Jolt.Bindings;
 
 namespace Jolt
 {
     public static class Jolt
     {
+        public struct InitializedDummy {}
         /// <summary>
         /// True Jolt is current initialized.
         /// </summary>
         public static bool Initialized { get; private set; }
+        public static SharedStatic<bool> s_Initialized = SharedStatic<bool>.GetOrCreate<InitializedDummy>();
 
         /// <summary>
         /// Initialize Jolt, returning true if initialization succeeded.
@@ -17,6 +20,7 @@ namespace Jolt
             if (!Initialized)
             {
                 Initialized = JPH_Init();
+                s_Initialized.Data = Initialized;
             }
 
             return Initialized;
@@ -38,6 +42,7 @@ namespace Jolt
             JPH_Shutdown();
 
             Initialized = false;
+            s_Initialized.Data = false;
         }
     }
 }

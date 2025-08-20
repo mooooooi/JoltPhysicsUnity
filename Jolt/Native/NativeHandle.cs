@@ -1,28 +1,40 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
+using Unity.Burst;
+using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
 
 namespace Jolt
 {
     /// <summary>
     /// A pointer to a native resource with optional safety checks against use-after-free.
     /// </summary>
+    [NativeContainer]
     internal unsafe struct NativeHandle<T> : IDisposable, IEquatable<NativeHandle<T>> where T : unmanaged
     {
-        #if !JOLT_DISABLE_SAFETY_CHECKS
-        private NativeSafetyHandle safety;
-        #endif
+        [NativeDisableUnsafePtrRestriction]
+        private T* m_Ptr;
+        
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+        internal AtomicSafetyHandle m_Safety;
 
-        private T* ptr;
+        static readonly SharedStatic<int> s_SafetyId = SharedStatic<int>.GetOrCreate<NativeHandle<T>>();
+        
+        [NativeSetClassTypeToNullOnSchedule]
+        DisposeSentinel m_DisposeSentinel;
+#endif
 
-        public nint RawValue => (nint)ptr;
+        public bool IsCreated => m_Ptr != null;
+        public nint RawValue => (nint)m_Ptr;
 
         public NativeHandle(T* ptr)
         {
-            #if !JOLT_DISABLE_SAFETY_CHECKS
-            safety = NativeSafetyHandle.Create((nint)ptr);
-            #endif
-
-            this.ptr = ptr;
+            m_Ptr = ptr;
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+            // m_Safety = AtomicSafetyHandle.Create();
+            DisposeSentinel.Create(out m_Safety, out m_DisposeSentinel, 1, Allocator.None);
+            CollectionHelper.SetStaticSafetyId<NativeQueue<T>>(ref m_Safety, ref s_SafetyId.Data);
+#endif
         }
 
         /// <summary>
@@ -30,8 +42,9 @@ namespace Jolt
         /// </summary>
         public NativeHandle<U> CreateOwnedHandle<U>(U* ptr) where U : unmanaged
         {
-            #if !JOLT_DISABLE_SAFETY_CHECKS
-            return new NativeHandle<U> { ptr = ptr, safety = safety };
+            #if ENABLE_UNITY_COLLECTIONS_CHECKS
+            AtomicSafetyHandle.CheckExistsAndThrow(m_Safety);
+            return new NativeHandle<U> { m_Ptr = ptr, m_Safety = m_Safety };
             #else
             return new NativeHandle<U> { ptr = ptr };
             #endif
@@ -40,8 +53,9 @@ namespace Jolt
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly NativeHandle<U> Reinterpret<U>() where U : unmanaged
         {
-            #if !JOLT_DISABLE_SAFETY_CHECKS
-            return new NativeHandle<U> { ptr = (U*) ptr, safety = safety };
+            #if ENABLE_UNITY_COLLECTIONS_CHECKS
+            AtomicSafetyHandle.CheckExistsAndThrow(m_Safety);
+            return new NativeHandle<U> { m_Ptr = (U*) m_Ptr, m_Safety = m_Safety };
             #else
             return new NativeHandle<U> { ptr = (U*) ptr };
             #endif
@@ -50,11 +64,11 @@ namespace Jolt
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly T* IntoPointer()
         {
-            #if !JOLT_DISABLE_SAFETY_CHECKS
-            NativeSafetyHandle.Assert(safety);
+            #if ENABLE_UNITY_COLLECTIONS_CHECKS
+            AtomicSafetyHandle.CheckExistsAndThrow(in m_Safety);
             #endif
 
-            return ptr;
+            return m_Ptr;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -67,11 +81,15 @@ namespace Jolt
 
         public void Dispose()
         {
-            #if !JOLT_DISABLE_SAFETY_CHECKS
-            NativeSafetyHandle.Release(safety);
-            #endif
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+            if (!AtomicSafetyHandle.IsDefaultValue(m_Safety))
+            {
+                AtomicSafetyHandle.CheckExistsAndThrow(m_Safety);
+            }
+            DisposeSentinel.Dispose(ref m_Safety, ref m_DisposeSentinel);
+#endif
 
-            ptr = null;
+            m_Ptr = null;
         }
 
         #endregion
@@ -80,11 +98,7 @@ namespace Jolt
 
         public bool Equals(NativeHandle<T> other)
         {
-            #if !JOLT_DISABLE_SAFETY_CHECKS
-            return ptr == other.ptr && safety == other.safety;
-            #else
-            return ptr == other.ptr;
-            #endif
+            return m_Ptr == other.m_Ptr;
         }
 
         public override bool Equals(object obj)
@@ -94,11 +108,7 @@ namespace Jolt
 
         public override int GetHashCode()
         {
-            #if !JOLT_DISABLE_SAFETY_CHECKS
-            return HashCode.Combine((nint)ptr, safety);
-            #else
-            return ((nint)ptr).GetHashCode();
-            #endif
+            return ((nint)m_Ptr).GetHashCode();
         }
 
         public static bool operator ==(NativeHandle<T> lhs, NativeHandle<T> rhs)

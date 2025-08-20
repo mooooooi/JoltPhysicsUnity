@@ -27,7 +27,6 @@ namespace Jolt.Unity
         private static void OnEnteredEditMode()
         {
             Jolt.Shutdown();
-            NativeSafetyHandle.Dispose();
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
+using Unity.Burst;
 using UnityEngine;
 
 [assembly: InternalsVisibleTo("Jolt.Tests")]
@@ -21,7 +22,23 @@ namespace Jolt
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void AssertInitialized()
         {
+            AssertInitializedManaged();
+            AssertInitializedBurst();
+        }
+
+        [BurstDiscard]
+        private static void AssertInitializedManaged()
+        {
             if (!Jolt.Initialized)
+            {
+                throw new InvalidOperationException("The Jolt native plugin has not been initialized. You must call Jolt.Initialize() before using Jolt.");
+            }
+        }
+        
+        [BurstDiscard]
+        private static void AssertInitializedBurst()
+        {
+            if (!Jolt.s_Initialized.Data)
             {
                 throw new InvalidOperationException("The Jolt native plugin has not been initialized. You must call Jolt.Initialize() before using Jolt.");
             }
