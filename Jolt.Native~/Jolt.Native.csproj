@@ -6,6 +6,7 @@
 
     <PropertyGroup>
         <EnableDefaultNoneItems>false</EnableDefaultNoneItems>
+        <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     </PropertyGroup>
 
     <PropertyGroup>
