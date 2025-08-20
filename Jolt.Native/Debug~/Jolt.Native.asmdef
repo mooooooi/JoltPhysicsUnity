@@ -1,5 +1,5 @@
 {
-    "name": "Jolt.Native",
+    "name": "Jolt.Native.Debug",
     "rootNamespace": "",
     "references": [],
     "includePlatforms": [],
@@ -8,7 +8,9 @@
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,
-    "defineConstraints": [],
+    "defineConstraints": [
+        "!JOLT_RELEASE"
+    ],
     "versionDefines": [],
     "noEngineReferences": false
 }
