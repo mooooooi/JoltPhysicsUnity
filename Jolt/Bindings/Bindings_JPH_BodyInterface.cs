@@ -10,7 +10,8 @@ namespace Jolt
             AssertInitialized();
 
             UnsafeBindings.JPH_BodyInterface_DestroyBody(@interface, bodyID);
-
+            
+            @interface.Dispose();
             // TODO mark any active body handles for this bodyID as disposed
         }
 

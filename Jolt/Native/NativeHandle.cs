@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
+using Jolt.Internal;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
@@ -17,11 +18,7 @@ namespace Jolt
         
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
         internal AtomicSafetyHandle m_Safety;
-
         static readonly SharedStatic<int> s_SafetyId = SharedStatic<int>.GetOrCreate<NativeHandle<T>>();
-        
-        [NativeSetClassTypeToNullOnSchedule]
-        DisposeSentinel m_DisposeSentinel;
 #endif
 
         public bool IsCreated => m_Ptr != null;
@@ -32,8 +29,9 @@ namespace Jolt
             m_Ptr = ptr;
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
             // m_Safety = AtomicSafetyHandle.Create();
-            DisposeSentinel.Create(out m_Safety, out m_DisposeSentinel, 1, Allocator.None);
+            m_Safety = AtomicSafetyHandle.Create();
             CollectionHelper.SetStaticSafetyId<NativeQueue<T>>(ref m_Safety, ref s_SafetyId.Data);
+            JoltNativeInternalUtility.LeakRecord(new IntPtr(ptr), 1);
 #endif
         }
 
@@ -86,7 +84,8 @@ namespace Jolt
             {
                 AtomicSafetyHandle.CheckExistsAndThrow(m_Safety);
             }
-            DisposeSentinel.Dispose(ref m_Safety, ref m_DisposeSentinel);
+            AtomicSafetyHandle.Release(m_Safety);
+            JoltNativeInternalUtility.LeakErase(new IntPtr(m_Ptr));
 #endif
 
             m_Ptr = null;

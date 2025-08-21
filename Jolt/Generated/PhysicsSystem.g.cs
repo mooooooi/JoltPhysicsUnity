@@ -23,7 +23,7 @@ namespace Jolt
         
         #region JPH_PhysicsSystem
         
-        public void Destroy() => Bindings.JPH_PhysicsSystem_Destroy(Handle);
+        public readonly void Destroy() => Bindings.JPH_PhysicsSystem_Destroy(Handle);
         
         public void SetPhysicsSettings(ref PhysicsSettings settings) => Bindings.JPH_PhysicsSystem_SetPhysicsSettings(Handle, ref settings);
         
@@ -31,7 +31,7 @@ namespace Jolt
         
         public void OptimizeBroadPhase() => Bindings.JPH_PhysicsSystem_OptimizeBroadPhase(Handle);
         
-        public BodyInterface GetBodyInterface() => new BodyInterface { Handle = Bindings.JPH_PhysicsSystem_GetBodyInterface(Handle) };
+        public readonly BodyInterface GetBodyInterface() => new BodyInterface { Handle = Bindings.JPH_PhysicsSystem_GetBodyInterface(Handle) };
         
         public BodyInterface GetBodyInterfaceNoLock() => new BodyInterface { Handle = Bindings.JPH_PhysicsSystem_GetBodyInterfaceNoLock(Handle) };
         
