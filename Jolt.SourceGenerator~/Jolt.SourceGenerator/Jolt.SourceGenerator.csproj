@@ -16,13 +16,19 @@
         </PackageReference>
     </ItemGroup>
 
+    <ItemGroup>
+      <Compile Update="Jolt.SourceGenerator.Test\Program.cs">
+        <Link>Test\Program.cs</Link>
+      </Compile>
+    </ItemGroup>
+
 
     <Target Name="CopyDLLs" AfterTargets="Build"> <!-- 也可用 AfterTargets="Publish" -->
         <Message Text="开始拷贝DLL文件" Importance="high" />
 
         <Copy
                 SourceFiles="$(TargetDir)$(ProjectName).dll;$(TargetDir)$(ProjectName).pdb"
-                DestinationFolder="../Jolt"
+                DestinationFolder="../../Jolt"
                 SkipUnchangedFiles="true" />
         <Message Text="DLL文件拷贝完毕" Importance="high" />
     </Target>
