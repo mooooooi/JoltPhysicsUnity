@@ -42,6 +42,8 @@ public readonly struct MethodDefine
     public void Generate(SourceCodeScopeHelper helper)
     {
         var isCreateByReturn = false;
+        var isDisposing = Name == "Destroy";
+        
         var returnType = ReturnType;
         if (ReturnType.EndsWith("*") && ReturnType.StartsWith(Context.k_Prefix))
         {
@@ -94,14 +96,17 @@ public readonly struct Struct(string typeName, ImmutableArray<MethodDefine> meth
 
     public void Generate(SourceCodeScopeHelper helper)
     {
+        if (IsInstance)
+            helper.AppendLine("[NativeContainer]");
         var funcHeader = IsInstance
-            ? $"[NativeContainer] public struct {TypeName}"
+            ? $"public struct {TypeName}"
             : $"public static class {TypeName}";
         using (var cls = helper.Scope(funcHeader))
         {
             if (IsInstance)
             {
-                cls.AppendLine($"[NativeDisableUnsafePtrRestriction] internal unsafe JPH_{TypeName}** Ptr;");
+                cls.AppendLine("[NativeDisableUnsafePtrRestriction]");
+                cls.AppendLine($"internal unsafe JPH_{TypeName}** Ptr;");
             }
 
             foreach (var methodDef in Methods)
