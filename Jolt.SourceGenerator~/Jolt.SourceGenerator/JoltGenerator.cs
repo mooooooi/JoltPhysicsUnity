@@ -99,7 +99,7 @@ public readonly struct Struct(string typeName, ImmutableArray<MethodDefine> meth
         if (IsInstance)
             helper.AppendLine("[NativeContainer]");
         var funcHeader = IsInstance
-            ? $"public struct {TypeName}"
+            ? $"public partial struct {TypeName}"
             : $"public static class {TypeName}";
         using (var cls = helper.Scope(funcHeader))
         {
@@ -224,12 +224,50 @@ public class JoltGenerator : IIncrementalGenerator
         });
     }
 
-    static readonly string[] k_Forbiddens = ["Quat", "Quaternion", "Vec3", "Matrix4x4", "RMatrix4x4"];
+    public static readonly string[] k_Forbiddens = ["Quat", "Quaternion", "Vec3", "Matrix4x4", "RMatrix4x4"];
 
-    static readonly Dictionary<string, string> k_Mappings = new Dictionary<string, string>()
+    public static readonly Dictionary<string, string> k_Extends = new Dictionary<string, string>()
     {
-        { "ObjectVsBroadPhaseLayerFilterTable", "ObjectVsBroadPhaseLayerFilter" },
-        { "ObjectLayerPairFilterMask", "ObjectLayerPairFilte" },
+        { "ConvexShape", "Shape" },
+        { "ConvexShapeSettings", "ShapeSettings" },
+        { "BoxShape", "ConvexShape" },
+        { "BoxShapeSettings", "ConvexShapeSettings" },
+        { "SphereShape", "ConvexShape" },
+        { "SphereShapeSettings", "ConvexShapeSettings" },
+        { "PlaneShape", "Shape" },
+        { "PlaneShapeSettings", "ShapeSettings" },
+        { "TriangleShape", "ConvexShape" },
+        { "TriangleShapeSettings", "ConvexShapeSettings" },
+        { "CapsuleShape", "ConvexShape" },
+        { "CapsuleShapeSettings", "ConvexShapeSettings" },
+        { "CylinderShape", "ConvexShape" },
+        { "CylinderShapeSettings", "ConvexShapeSettings" },
+        { "TaperedCylinderShape", "ConvexShape" },
+        { "TaperedCylinderShapeSettings", "ConvexShapeSettings" },
+        { "ConvexHullShape", "ConvexShape" },
+        { "ConvexHullShapeSettings", "ConvexShapeSettings" },
+        { "MeshShape", "Shape" },
+        { "MeshShapeSettings", "ShapeSettings" },
+        { "HeightFieldShape", "Shape" },
+        { "HeightFieldShapeSettings", "ShapeSettings" },
+        { "TaperedCapsuleShape", "ConvexShape" },
+        { "TaperedCapsuleShapeSettings", "ConvexShapeSettings" },
+        { "CompoundShape", "Shape" },
+        { "CompoundShapeSettings", "ShapeSettings" },
+        { "StaticCompoundShape", "CompoundShape" },
+        { "StaticCompoundShapeSettings", "CompoundShapeSettings" },
+        { "MutableCompoundShape", "CompoundShape" },
+        { "MutableCompoundShapeSettings", "CompoundShapeSettings" },
+        { "DecoratedShape", "Shape" },
+        { "DecoratedShapeSettings", "ShapeSettings" },
+        { "RotatedTranslatedShape", "DecoratedShape" },
+        { "RotatedTranslatedShapeSettings", "DecoratedShapeSettings" },
+        { "ScaledShape", "DecoratedShape" },
+        { "ScaledShapeSettings", "DecoratedShapeSettings" },
+        { "OffsetCenterOfMassShape", "DecoratedShape" },
+        { "OffsetCenterOfMassShapeSettings", "DecoratedShapeSettings" },
+        { "EmptyShape", "Shape" },
+        { "EmptyShapeSettings", "ShapeSettings" },
     };
 
     private static IEnumerable<Struct> Parse(GeneratorSyntaxContext ctx, CancellationToken token)
