@@ -39,7 +39,7 @@ public readonly struct MethodDefine
         Parameters = symbol.Parameters.Select(x => new Parameter(x)).ToImmutableArray();
     }
 
-    public void Generate(SourceCodeScopeHelper helper)
+    public void Generate(SourceCodeScopeHelper helper, bool isSuper)
     {
         var isCreateByReturn = false;
         var isDisposing = Name == "Destroy";
@@ -63,17 +63,27 @@ public readonly struct MethodDefine
 
         using (var method = helper.Scope(header))
         {
+            var ptrExpression = string.Empty;
+            if (IsInstance && !isSuper)
+            {
+                ptrExpression = "*Ptr";
+            }
+            else if (IsInstance && isSuper)
+            {
+                ptrExpression = $"({Parameters[0].type})*Ptr";
+            }
             var dotSplit = IsInstance && !string.IsNullOrEmpty(parametersNameOnly) ? ", " : string.Empty;
+            
             if (ReturnType == "void")
             {
-                method.AppendLine($"{Call}({(IsInstance ? "*Ptr" : string.Empty)}{dotSplit}{parametersNameOnly});");
+                method.AppendLine($"{Call}({(ptrExpression)}{dotSplit}{parametersNameOnly});");
             }
             else
             {
                 if (isCreateByReturn)
                 {
                     method.AppendLine(
-                        $"var value = {Call}({(IsInstance ? "*Ptr" : string.Empty)}{dotSplit}{parametersNameOnly});");
+                        $"var value = {Call}({ptrExpression}{dotSplit}{parametersNameOnly});");
                     method.AppendLine(
                         $"var ptr = ({ReturnType}*)UnsafeUtility.MallocTracked(sizeof(void**), UnsafeUtility.AlignOf<IntPtr>(), Allocator.Persistent, 1);");
                     method.AppendLine($"*ptr = value;");
@@ -81,7 +91,7 @@ public readonly struct MethodDefine
                 }
                 else
                 {
-                    method.AppendLine($"return {Call}({(IsInstance ? "*Ptr" : string.Empty)}{dotSplit}{parametersNameOnly});");
+                    method.AppendLine($"return {Call}({ptrExpression}{dotSplit}{parametersNameOnly});");
                 }
             }
         }
@@ -94,16 +104,18 @@ public readonly struct Struct(string typeName, ImmutableArray<MethodDefine> meth
     public readonly ImmutableArray<MethodDefine> Methods = methods;
     public readonly bool IsInstance = isInstance;
 
-    public void Generate(SourceCodeScopeHelper helper)
+    public void Generate(SourceCodeScopeHelper helper, string superTypeName = null)
     {
-        if (IsInstance)
+        var isSuper = !string.IsNullOrEmpty(superTypeName);
+        
+        if (IsInstance && !isSuper)
             helper.AppendLine("[NativeContainer]");
         var funcHeader = IsInstance
-            ? $"public partial struct {TypeName}"
+            ? $"public partial struct {superTypeName ?? TypeName}"
             : $"public static class {TypeName}";
         using (var cls = helper.Scope(funcHeader))
         {
-            if (IsInstance)
+            if (IsInstance && !isSuper)
             {
                 cls.AppendLine("[NativeDisableUnsafePtrRestriction]");
                 cls.AppendLine($"internal unsafe JPH_{TypeName}** Ptr;");
@@ -111,8 +123,9 @@ public readonly struct Struct(string typeName, ImmutableArray<MethodDefine> meth
 
             foreach (var methodDef in Methods)
             {
+                if (!methodDef.IsInstance && isSuper) continue;
                 cls.AppendLine($"//{methodDef.Name} -> {methodDef.Call}");
-                methodDef.Generate(cls);
+                methodDef.Generate(cls, isSuper);
             }
         }
     }
@@ -196,30 +209,46 @@ public class JoltGenerator : IIncrementalGenerator
             )
             .SelectMany((x, token) => x);
 
-        context.RegisterSourceOutput(structs, (gctx, source) =>
+        context.RegisterSourceOutput(structs.Collect(), (gctx, sources) =>
         {
-            var helper = new SourceCodeHelper(m_StringBuilder ??= new());
-            helper.Using("System");
-            helper.Using("Unity");
-            helper.Using("Unity.Mathematics");
-            helper.Using("Unity.Collections");
-            helper.Using("Unity.Collections.LowLevel.Unsafe");
-            try
+            var sourceLookup = sources.ToDictionary(x => x.TypeName);
+            foreach (var source in sources)
             {
-                using (var @namespace = helper.Scope("namespace Jolt"))
+                var helper = new SourceCodeHelper(m_StringBuilder ??= new());
+                helper.Using("System");
+                helper.Using("Unity");
+                helper.Using("Unity.Mathematics");
+                helper.Using("Unity.Collections");
+                helper.Using("Unity.Collections.LowLevel.Unsafe");
+                try
                 {
-                    source.Generate(@namespace);
-                }
+                    using (var @namespace = helper.Scope("namespace Jolt"))
+                    {
+                        source.Generate(@namespace, null);
 
-                gctx.AddSource($"{source.TypeName}.g.cs", m_StringBuilder.ToString());
-            }
-            catch (Exception e)
-            {
-                gctx.AddSource($"{source.TypeName}.g.cs", $"/* {e}*/");
-            }
-            finally
-            {
-                m_StringBuilder.Clear();
+                        var typeName = source.TypeName;
+                        while (k_Extends.TryGetValue(typeName, out var superTypeName))
+                        {
+                            if (sourceLookup.TryGetValue(superTypeName, out var superStruct))
+                            {
+                                @namespace.AppendLine($"//{typeName} extends {superTypeName}");
+                                superStruct.Generate(@namespace, source.TypeName);
+                            }
+
+                            typeName = superTypeName;
+                        }
+                    }
+
+                    gctx.AddSource($"{source.TypeName}.g.cs", m_StringBuilder.ToString());
+                }
+                catch (Exception e)
+                {
+                    gctx.AddSource($"{source.TypeName}.g.cs", $"/* {e}*/");
+                }
+                finally
+                {
+                    m_StringBuilder.Clear();
+                }
             }
         });
     }
