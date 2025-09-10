@@ -22,7 +22,7 @@ public struct Parameter
     }
 }
 
-public readonly struct MethodDefine
+public readonly struct MethodDefinition
 {
     public readonly bool IsInstance;
     public readonly string Name;
@@ -30,7 +30,7 @@ public readonly struct MethodDefine
     public readonly string ReturnType;
     public readonly ImmutableArray<Parameter> Parameters;
 
-    public MethodDefine(bool isInstance, string name, IMethodSymbol symbol)
+    public MethodDefinition(bool isInstance, string name, IMethodSymbol symbol)
     {
         IsInstance = isInstance;
         Name = name;
@@ -98,10 +98,10 @@ public readonly struct MethodDefine
     }
 }
 
-public readonly struct Struct(string typeName, ImmutableArray<MethodDefine> methods, bool isInstance)
+public readonly struct StructDefinition(string typeName, ImmutableArray<MethodDefinition> methods, bool isInstance)
 {
     public readonly string TypeName = typeName;
-    public readonly ImmutableArray<MethodDefine> Methods = methods;
+    public readonly ImmutableArray<MethodDefinition> Methods = methods;
     public readonly bool IsInstance = isInstance;
 
     public void Generate(SourceCodeScopeHelper helper, string superTypeName = null)
@@ -119,6 +119,14 @@ public readonly struct Struct(string typeName, ImmutableArray<MethodDefine> meth
             {
                 cls.AppendLine("[NativeDisableUnsafePtrRestriction]");
                 cls.AppendLine($"internal unsafe JPH_{TypeName}** Ptr;");
+                cls.AppendLine();
+                
+                cls.AppendLine($"public unsafe bool IsCreated => Ptr != null;");
+                
+                using (var func = cls.Scope($"public unsafe JPH_{TypeName}* ToUnsafePtr()"))
+                {
+                    func.AppendLine($"return *Ptr;");
+                }
             }
 
             foreach (var methodDef in Methods)
@@ -131,11 +139,11 @@ public readonly struct Struct(string typeName, ImmutableArray<MethodDefine> meth
     }
 }
 
-public class Context : IEnumerable<Struct>
+public class Context : IEnumerable<StructDefinition>
 {
     public const string k_Prefix = "Jolt.JPH_";
 
-    List<(bool isInstance, List<MethodDefine> methodDefines)> m_Entries = new();
+    List<(bool isInstance, List<MethodDefinition> methodDefines)> m_Entries = new();
     Dictionary<string, int> m_Type2Info = new();
 
     public int GetOrAddType(string typeName)
@@ -144,18 +152,18 @@ public class Context : IEnumerable<Struct>
         {
             index = m_Entries.Count;
             m_Type2Info[typeName] = index;
-            m_Entries.Add((false, new List<MethodDefine>()));
+            m_Entries.Add((false, new List<MethodDefinition>()));
         }
 
         return index;
     }
 
-    public void AddMethodByTypeIndex(int typeIndex, MethodDefine methodDefine)
+    public void AddMethodByTypeIndex(int typeIndex, MethodDefinition methodDefinition)
     {
         var methods = m_Entries[typeIndex].methodDefines;
-        methods.Add(methodDefine);
+        methods.Add(methodDefinition);
 
-        if (methodDefine.IsInstance)
+        if (methodDefinition.IsInstance)
         {
             MarkIsInstance(typeIndex);
         }
@@ -168,7 +176,7 @@ public class Context : IEnumerable<Struct>
         m_Entries[typeIndex] = entry;
     }
 
-    public IEnumerator<Struct> GetEnumerator()
+    public IEnumerator<StructDefinition> GetEnumerator()
     {
         foreach (var kv in m_Type2Info)
         {
@@ -177,7 +185,7 @@ public class Context : IEnumerable<Struct>
             var methods = entry.methodDefines;
 
             var isInstance = entry.isInstance | methods.Any(x => x.IsInstance || x.ReturnType.Contains($"{kv.Key}*"));
-            yield return new Struct(kv.Key, methods.ToImmutableArray(), isInstance);
+            yield return new StructDefinition(kv.Key, methods.ToImmutableArray(), isInstance);
         }
     }
 
@@ -255,6 +263,18 @@ public class JoltGenerator : IIncrementalGenerator
 
     public static readonly string[] k_Forbiddens = ["Quat", "Quaternion", "Vec3", "Matrix4x4", "RMatrix4x4"];
 
+    public static readonly Dictionary<string, string> k_Mappings = new()
+    {
+        { "ObjectLayerPairFilterTable", "ObjectLayerPairFilter" },
+        { "ObjectLayerPairFilterMask", "ObjectLayerPairFilter" },        
+        
+        { "ObjectVsBroadPhaseLayerFilterTable", "ObjectVsBroadPhaseLayerFilter" },
+        { "ObjectVsBroadPhaseLayerFilterMask", "ObjectVsBroadPhaseLayerFilter" },               
+        
+        { "BroadPhaseLayerInterfaceTable", "BroadPhaseLayerInterface" },
+        { "BroadPhaseLayerInterfaceMask", "BroadPhaseLayerInterface" },        
+    };
+
     public static readonly Dictionary<string, string> k_Extends = new Dictionary<string, string>()
     {
         { "ConvexShape", "Shape" },
@@ -299,7 +319,7 @@ public class JoltGenerator : IIncrementalGenerator
         { "EmptyShapeSettings", "ShapeSettings" },
     };
 
-    private static IEnumerable<Struct> Parse(GeneratorSyntaxContext ctx, CancellationToken token)
+    private static IEnumerable<StructDefinition> Parse(GeneratorSyntaxContext ctx, CancellationToken token)
     {
         var symbol = ctx.SemanticModel.GetDeclaredSymbol(ctx.Node, token) as INamedTypeSymbol;
         if (symbol is null) yield break;
@@ -322,7 +342,7 @@ public class JoltGenerator : IIncrementalGenerator
             }
             else if (splits.Length == 2)
             {
-                typeName = "JotCore";
+                typeName = "JoltCore";
                 methodName = splits[1];
             }
             else
@@ -331,11 +351,12 @@ public class JoltGenerator : IIncrementalGenerator
             }
 
             if (k_Forbiddens.Contains(typeName)) continue;
+            typeName = k_Mappings.TryGetValue(typeName, out var replaced) ? replaced : typeName;
 
             var typeIndex = context.GetOrAddType(typeName);
             var isInstance = method.Parameters.Length > 0 &&
                              method.Parameters[0].Type.ToDisplayString().Contains($"JPH_{typeName}*");
-            var methodDef = new MethodDefine(isInstance, methodName, method);
+            var methodDef = new MethodDefinition(isInstance, methodName, method);
 
             if (methodDef.ReturnType.StartsWith(Context.k_Prefix) && methodDef.ReturnType.EndsWith("*"))
             {
