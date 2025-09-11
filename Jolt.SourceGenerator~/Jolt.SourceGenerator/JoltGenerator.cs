@@ -31,6 +31,11 @@ public struct Parameter
             {
                 return $"{nativeType} {name}";
             }
+            
+            if (name != "result" && JoltGenerator.k_ValuePtrTypes.Contains(type))
+            {
+                return $"{type.Substring(0, type.Length - 1)} {name}";
+            }
             return $"{type} {name}";
         }
     }
@@ -43,6 +48,12 @@ public struct Parameter
             {
                 return $"{name} ? (byte)1 : (byte)0";
             }
+            
+            if (name != "result" && JoltGenerator.k_ValuePtrTypes.Contains(type))
+            {
+                return $"&{name}";
+            }
+            
             return name;
         }
     }
@@ -77,9 +88,9 @@ public readonly struct MethodDefinition
         var returnType = ReturnType;
         string returnExpression = null;
         
-        if (returnType.EndsWith("*") && returnType.StartsWith(Context.k_Prefix))
+        if (returnType.EndsWith("*") && returnType.StartsWith(JoltGenerator.k_Prefix))
         {
-            returnType = returnType.Substring(Context.k_Prefix.Length, returnType.Length - Context.k_Prefix.Length - 1);
+            returnType = returnType.Substring(JoltGenerator.k_Prefix.Length, returnType.Length - JoltGenerator.k_Prefix.Length - 1);
             isCreateByReturn = true;
         }
         else if (NativeReturnType == "bool" && returnType == "byte")
@@ -103,11 +114,11 @@ public readonly struct MethodDefinition
             var ptrExpression = string.Empty;
             if (IsInstance && !isSuper)
             {
-                ptrExpression = "*Ptr";
+                ptrExpression = "Ptr";
             }
             else if (IsInstance && isSuper)
             {
-                ptrExpression = $"({Parameters[0].type})*Ptr";
+                ptrExpression = $"({Parameters[0].type})Ptr";
             }
             var dotSplit = IsInstance && !string.IsNullOrEmpty(parametersNameOnly) ? ", " : string.Empty;
             
@@ -122,10 +133,10 @@ public readonly struct MethodDefinition
                 if (isCreateByReturn)
                 {
 
-                    method.AppendLine(
-                        $"var ptr = ({ReturnType}*)UnsafeUtility.MallocTracked(sizeof(void**), UnsafeUtility.AlignOf<IntPtr>(), Allocator.Persistent, 1);");
-                    method.AppendLine($"*ptr = returnValue;");
-                    method.AppendLine($"return new {returnType}() {{ Ptr = ptr }};");
+                    // method.AppendLine(
+                    //     $"var ptr = ({ReturnType}*)UnsafeUtility.MallocTracked(sizeof(void**), UnsafeUtility.AlignOf<IntPtr>(), Allocator.Persistent, 1);");
+                    // method.AppendLine($"*ptr = returnValue;");
+                    method.AppendLine($"return new {returnType}() {{ Ptr = returnValue }};");
                 }
                 else
                 {
@@ -156,20 +167,20 @@ public readonly struct StructDefinition(string typeName, ImmutableArray<MethodDe
             if (IsInstance && !isSuper)
             {
                 cls.AppendLine("[NativeDisableUnsafePtrRestriction]");
-                cls.AppendLine($"internal unsafe JPH_{TypeName}** Ptr;");
+                cls.AppendLine($"internal unsafe JPH_{TypeName}* Ptr;");
                 cls.AppendLine();
                 
                 cls.AppendLine($"public unsafe bool IsCreated => Ptr != null;");
                 
                 using (var func = cls.Scope($"public unsafe JPH_{TypeName}* ToUnsafePtr()"))
                 {
-                    func.AppendLine($"return *Ptr;");
+                    func.AppendLine($"return Ptr;");
                 }
             }
 
             if (IsInstance && isSuper)
             {
-                cls.AppendLine($"public unsafe {TypeName} As{TypeName} => new {TypeName}() {{ Ptr = (JPH_{TypeName}**)Ptr }};");
+                cls.AppendLine($"public unsafe {TypeName} As{TypeName} => new {TypeName}() {{ Ptr = (JPH_{TypeName}*)Ptr }};");
             }
 
             foreach (var methodDef in Methods)
@@ -184,8 +195,6 @@ public readonly struct StructDefinition(string typeName, ImmutableArray<MethodDe
 
 public class Context : IEnumerable<StructDefinition>
 {
-    public const string k_Prefix = "Jolt.JPH_";
-
     List<(bool isInstance, List<MethodDefinition> methodDefines)> m_Entries = new();
     Dictionary<string, int> m_Type2Info = new();
 
@@ -303,8 +312,18 @@ public class JoltGenerator : IIncrementalGenerator
             }
         });
     }
+    public const string k_Prefix = "Jolt.JPH_";
 
-    public static readonly string[] k_Forbiddens = ["Quat", "Quaternion", "Vec3", "Matrix4x4", "RMatrix4x4"];
+    public static readonly HashSet<string> k_ForbiddenTypes = ["Quat", "Quaternion", "Vec3", "Matrix4x4", "RMatrix4x4"];
+    public static readonly HashSet<string> k_ForbiddenMethods = 
+        [
+            "JPH_MeshShapeSettings_Create",
+            "JPH_MeshShapeSettings_Create2",
+        ];
+    
+    public static readonly HashSet<string> k_ValuePtrTypes = [
+        "Unity.Mathematics.float3*", 
+        "Unity.Mathematics.quaternion*"];
 
     public static readonly Dictionary<string, string> k_Mappings = new()
     {
@@ -372,6 +391,7 @@ public class JoltGenerator : IIncrementalGenerator
         var methodSymbols = symbol.GetMembers().OfType<IMethodSymbol>();
         foreach (var method in methodSymbols)
         {
+            if (k_ForbiddenMethods.Contains(method.Name)) continue;
             var splits = method.Name.Split('_');
 
             // throw new Exception(string.Join("--", splits));
@@ -393,7 +413,7 @@ public class JoltGenerator : IIncrementalGenerator
                 throw new Exception("Unknown type");
             }
 
-            if (k_Forbiddens.Contains(typeName)) continue;
+            if (k_ForbiddenTypes.Contains(typeName)) continue;
             typeName = k_Mappings.TryGetValue(typeName, out var replaced) ? replaced : typeName;
 
             var typeIndex = context.GetOrAddType(typeName);
@@ -401,10 +421,10 @@ public class JoltGenerator : IIncrementalGenerator
                              method.Parameters[0].Type.ToDisplayString().Contains($"JPH_{typeName}*");
             var methodDef = new MethodDefinition(isInstance, methodName, method);
 
-            if (methodDef.ReturnType.StartsWith(Context.k_Prefix) && methodDef.ReturnType.EndsWith("*"))
+            if (methodDef.ReturnType.StartsWith(k_Prefix) && methodDef.ReturnType.EndsWith("*"))
             {
-                var returnTypeName = methodDef.ReturnType.Substring(Context.k_Prefix.Length,
-                    methodDef.ReturnType.Length - Context.k_Prefix.Length - 1);
+                var returnTypeName = methodDef.ReturnType.Substring(k_Prefix.Length,
+                    methodDef.ReturnType.Length - k_Prefix.Length - 1);
                 var returnTypeIndex = context.GetOrAddType(returnTypeName);
                 context.MarkIsInstance(returnTypeIndex);
             }
