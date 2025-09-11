@@ -1,5 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 using Unity.Mathematics;
+using UnityEngine;
 
 namespace Jolt
 {
@@ -37,6 +38,11 @@ namespace Jolt
         }
 
         public static unsafe implicit operator rvec3(float3 vec)
+        {
+            return *((rvec3*) &vec);
+        }
+        
+        public static unsafe implicit operator rvec3(Vector3 vec)
         {
             return *((rvec3*) &vec);
         }

@@ -106,7 +106,7 @@ public readonly struct MethodDefinition
             ? string.Join(", ", Parameters.Skip(1).Select(x => x.AsCaller))
             : string.Join(", ", Parameters.Select(x => x.AsCaller));
         var header = IsInstance
-            ? $"public unsafe {returnType} {Name}({parameters})"
+            ? $"public readonly unsafe {returnType} {Name}({parameters})"
             : $"public unsafe static {returnType} {Name}({parameters})";
 
         using (var method = helper.Scope(header))
@@ -172,7 +172,7 @@ public readonly struct StructDefinition(string typeName, ImmutableArray<MethodDe
                 
                 cls.AppendLine($"public unsafe bool IsCreated => Ptr != null;");
                 
-                using (var func = cls.Scope($"public unsafe JPH_{TypeName}* ToUnsafePtr()"))
+                using (var func = cls.Scope($"public readonly unsafe JPH_{TypeName}* ToUnsafePtr()"))
                 {
                     func.AppendLine($"return Ptr;");
                 }
@@ -323,7 +323,9 @@ public class JoltGenerator : IIncrementalGenerator
     
     public static readonly HashSet<string> k_ValuePtrTypes = [
         "Unity.Mathematics.float3*", 
-        "Unity.Mathematics.quaternion*"];
+        "Unity.Mathematics.quaternion*",
+        "Jolt.rvec3*"
+    ];
 
     public static readonly Dictionary<string, string> k_Mappings = new()
     {
