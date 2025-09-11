@@ -19,43 +19,53 @@ public struct Parameter
     public Parameter(IParameterSymbol symbol)
     {
         type = symbol.Type.ToDisplayString();
-        nativeType = symbol.GetAttributes().FirstOrDefault(x => x.AttributeClass?.Name == "NativeTypeNameAttribute")?.ConstructorArguments.FirstOrDefault().Value?.ToString();
+        nativeType = symbol.GetAttributes().FirstOrDefault(x => x.AttributeClass?.Name == "NativeTypeNameAttribute")
+            ?.ConstructorArguments.FirstOrDefault().Value?.ToString();
         name = symbol.Name;
     }
 
-    public string AsDefinition
+    private bool ShouldConvertToValueType
     {
         get
         {
-            if (nativeType == "bool" && type == "byte")
-            {
-                return $"{nativeType} {name}";
-            }
-            
-            if (name != "result" && JoltGenerator.k_ValuePtrTypes.Contains(type))
-            {
-                return $"{type.Substring(0, type.Length - 1)} {name}";
-            }
-            return $"{type} {name}";
+            if (name == "result") return false;
+            if (!JoltGenerator.k_ValuePtrTypes.Contains(type)) return false;
+            return true;
         }
     }
 
-    public string AsCaller
+    public string AsDefinitionWithoutTransform => $"{type} {name}";
+
+    public string AsDefinition(bool isGetterLike)
     {
-        get
+        if (nativeType == "bool" && type == "byte")
         {
-            if (nativeType == "bool" && type == "byte")
-            {
-                return $"{name} ? (byte)1 : (byte)0";
-            }
-            
-            if (name != "result" && JoltGenerator.k_ValuePtrTypes.Contains(type))
-            {
-                return $"&{name}";
-            }
-            
-            return name;
+            return $"{nativeType} {name}";
         }
+
+        if (ShouldConvertToValueType && !isGetterLike)
+        {
+            return $"{type.Substring(0, type.Length - 1)} {name}";
+        }
+
+        return AsDefinitionWithoutTransform;
+    }
+
+    public string AsCallerWithoutTransform => name;
+
+    public string AsCaller(bool isGetterLike)
+    {
+        if (nativeType == "bool" && type == "byte")
+        {
+            return $"{name} ? (byte)1 : (byte)0";
+        }
+
+        if (ShouldConvertToValueType && !isGetterLike)
+        {
+            return $"&{name}";
+        }
+
+        return AsCallerWithoutTransform;
     }
 }
 
@@ -84,13 +94,14 @@ public readonly struct MethodDefinition
     {
         var isCreateByReturn = false;
         var isDisposing = Name == "Destroy";
-        
+
         var returnType = ReturnType;
         string returnExpression = null;
-        
+
         if (returnType.EndsWith("*") && returnType.StartsWith(JoltGenerator.k_Prefix))
         {
-            returnType = returnType.Substring(JoltGenerator.k_Prefix.Length, returnType.Length - JoltGenerator.k_Prefix.Length - 1);
+            returnType = returnType.Substring(JoltGenerator.k_Prefix.Length,
+                returnType.Length - JoltGenerator.k_Prefix.Length - 1);
             isCreateByReturn = true;
         }
         else if (NativeReturnType == "bool" && returnType == "byte")
@@ -99,12 +110,17 @@ public readonly struct MethodDefinition
             returnExpression = "return returnValue != 0;";
         }
 
+        var isGetterLike = ReturnType == "void"
+                           && Name.StartsWith("Get")
+                           && Parameters.Length == 2
+                           && Parameters[1].type.EndsWith("*");
+
         var parameters = IsInstance
-            ? string.Join(", ", Parameters.Skip(1).Select(x => x.AsDefinition))
-            : string.Join(", ", Parameters.Select(x => x.AsDefinition));
+            ? string.Join(", ", Parameters.Skip(1).Select(x => x.AsDefinition(isGetterLike)))
+            : string.Join(", ", Parameters.Select(x => x.AsDefinition(isGetterLike)));
         var parametersNameOnly = IsInstance
-            ? string.Join(", ", Parameters.Skip(1).Select(x => x.AsCaller))
-            : string.Join(", ", Parameters.Select(x => x.AsCaller));
+            ? string.Join(", ", Parameters.Skip(1).Select(x => x.AsCaller(isGetterLike)))
+            : string.Join(", ", Parameters.Select(x => x.AsCaller(isGetterLike)));
         var header = IsInstance
             ? $"public readonly unsafe {returnType} {Name}({parameters})"
             : $"public unsafe static {returnType} {Name}({parameters})";
@@ -120,8 +136,9 @@ public readonly struct MethodDefinition
             {
                 ptrExpression = $"({Parameters[0].type})Ptr";
             }
+
             var dotSplit = IsInstance && !string.IsNullOrEmpty(parametersNameOnly) ? ", " : string.Empty;
-            
+
             if (ReturnType == "void")
             {
                 method.AppendLine($"{Call}({(ptrExpression)}{dotSplit}{parametersNameOnly});");
@@ -132,7 +149,6 @@ public readonly struct MethodDefinition
                     $"var returnValue = {Call}({ptrExpression}{dotSplit}{parametersNameOnly});");
                 if (isCreateByReturn)
                 {
-
                     // method.AppendLine(
                     //     $"var ptr = ({ReturnType}*)UnsafeUtility.MallocTracked(sizeof(void**), UnsafeUtility.AlignOf<IntPtr>(), Allocator.Persistent, 1);");
                     // method.AppendLine($"*ptr = returnValue;");
@@ -156,7 +172,7 @@ public readonly struct StructDefinition(string typeName, ImmutableArray<MethodDe
     public void Generate(SourceCodeScopeHelper helper, string superTypeName = null)
     {
         var isSuper = !string.IsNullOrEmpty(superTypeName);
-        
+
         if (IsInstance && !isSuper)
             helper.AppendLine("[NativeContainer]");
         var funcHeader = IsInstance
@@ -169,9 +185,9 @@ public readonly struct StructDefinition(string typeName, ImmutableArray<MethodDe
                 cls.AppendLine("[NativeDisableUnsafePtrRestriction]");
                 cls.AppendLine($"internal unsafe JPH_{TypeName}* Ptr;");
                 cls.AppendLine();
-                
+
                 cls.AppendLine($"public unsafe bool IsCreated => Ptr != null;");
-                
+
                 using (var func = cls.Scope($"public readonly unsafe JPH_{TypeName}* ToUnsafePtr()"))
                 {
                     func.AppendLine($"return Ptr;");
@@ -180,7 +196,8 @@ public readonly struct StructDefinition(string typeName, ImmutableArray<MethodDe
 
             if (IsInstance && isSuper)
             {
-                cls.AppendLine($"public unsafe {TypeName} As{TypeName} => new {TypeName}() {{ Ptr = (JPH_{TypeName}*)Ptr }};");
+                cls.AppendLine(
+                    $"public unsafe {TypeName} As{TypeName} => new {TypeName}() {{ Ptr = (JPH_{TypeName}*)Ptr }};");
             }
 
             foreach (var methodDef in Methods)
@@ -312,17 +329,20 @@ public class JoltGenerator : IIncrementalGenerator
             }
         });
     }
+
     public const string k_Prefix = "Jolt.JPH_";
 
     public static readonly HashSet<string> k_ForbiddenTypes = ["Quat", "Quaternion", "Vec3", "Matrix4x4", "RMatrix4x4"];
-    public static readonly HashSet<string> k_ForbiddenMethods = 
-        [
-            "JPH_MeshShapeSettings_Create",
-            "JPH_MeshShapeSettings_Create2",
-        ];
-    
-    public static readonly HashSet<string> k_ValuePtrTypes = [
-        "Unity.Mathematics.float3*", 
+
+    public static readonly HashSet<string> k_ForbiddenMethods =
+    [
+        "JPH_MeshShapeSettings_Create",
+        "JPH_MeshShapeSettings_Create2",
+    ];
+
+    public static readonly HashSet<string> k_ValuePtrTypes =
+    [
+        "Unity.Mathematics.float3*",
         "Unity.Mathematics.quaternion*",
         "Jolt.rvec3*"
     ];
@@ -330,13 +350,13 @@ public class JoltGenerator : IIncrementalGenerator
     public static readonly Dictionary<string, string> k_Mappings = new()
     {
         { "ObjectLayerPairFilterTable", "ObjectLayerPairFilter" },
-        { "ObjectLayerPairFilterMask", "ObjectLayerPairFilter" },        
-        
+        { "ObjectLayerPairFilterMask", "ObjectLayerPairFilter" },
+
         { "ObjectVsBroadPhaseLayerFilterTable", "ObjectVsBroadPhaseLayerFilter" },
-        { "ObjectVsBroadPhaseLayerFilterMask", "ObjectVsBroadPhaseLayerFilter" },               
-        
+        { "ObjectVsBroadPhaseLayerFilterMask", "ObjectVsBroadPhaseLayerFilter" },
+
         { "BroadPhaseLayerInterfaceTable", "BroadPhaseLayerInterface" },
-        { "BroadPhaseLayerInterfaceMask", "BroadPhaseLayerInterface" },        
+        { "BroadPhaseLayerInterfaceMask", "BroadPhaseLayerInterface" },
     };
 
     public static readonly Dictionary<string, string> k_Extends = new Dictionary<string, string>()
