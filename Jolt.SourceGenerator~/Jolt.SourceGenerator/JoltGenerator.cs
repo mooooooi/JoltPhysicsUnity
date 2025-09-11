@@ -13,12 +13,38 @@ namespace Jolt.SourceGenerator;
 public struct Parameter
 {
     public readonly string type;
+    public readonly string nativeType;
     public readonly string name;
 
     public Parameter(IParameterSymbol symbol)
     {
         type = symbol.Type.ToDisplayString();
+        nativeType = symbol.GetAttributes().FirstOrDefault(x => x.AttributeClass?.Name == "NativeTypeNameAttribute")?.ConstructorArguments.FirstOrDefault().Value?.ToString();
         name = symbol.Name;
+    }
+
+    public string AsDefinition
+    {
+        get
+        {
+            if (nativeType == "bool" && type == "byte")
+            {
+                return $"{nativeType} {name}";
+            }
+            return $"{type} {name}";
+        }
+    }
+
+    public string AsCaller
+    {
+        get
+        {
+            if (nativeType == "bool" && type == "byte")
+            {
+                return $"{name} ? (byte)1 : (byte)0";
+            }
+            return name;
+        }
     }
 }
 
@@ -28,6 +54,7 @@ public readonly struct MethodDefinition
     public readonly string Name;
     public readonly string Call;
     public readonly string ReturnType;
+    public readonly string NativeReturnType;
     public readonly ImmutableArray<Parameter> Parameters;
 
     public MethodDefinition(bool isInstance, string name, IMethodSymbol symbol)
@@ -37,6 +64,9 @@ public readonly struct MethodDefinition
         Call = $"{symbol.ContainingType.ToDisplayString()}.{symbol.Name}";
         ReturnType = symbol.ReturnType.ToDisplayString();
         Parameters = symbol.Parameters.Select(x => new Parameter(x)).ToImmutableArray();
+        NativeReturnType = symbol.GetReturnTypeAttributes()
+            .FirstOrDefault(x => x.AttributeClass?.Name == "NativeTypeNameAttribute")
+            ?.ConstructorArguments[0].Value?.ToString();
     }
 
     public void Generate(SourceCodeScopeHelper helper, bool isSuper)
@@ -45,18 +75,25 @@ public readonly struct MethodDefinition
         var isDisposing = Name == "Destroy";
         
         var returnType = ReturnType;
-        if (ReturnType.EndsWith("*") && ReturnType.StartsWith(Context.k_Prefix))
+        string returnExpression = null;
+        
+        if (returnType.EndsWith("*") && returnType.StartsWith(Context.k_Prefix))
         {
-            returnType = ReturnType.Substring(Context.k_Prefix.Length, ReturnType.Length - Context.k_Prefix.Length - 1);
+            returnType = returnType.Substring(Context.k_Prefix.Length, returnType.Length - Context.k_Prefix.Length - 1);
             isCreateByReturn = true;
+        }
+        else if (NativeReturnType == "bool" && returnType == "byte")
+        {
+            returnType = NativeReturnType;
+            returnExpression = "return returnValue != 0;";
         }
 
         var parameters = IsInstance
-            ? string.Join(", ", Parameters.Skip(1).Select(x => $"{x.type} {x.name}"))
-            : string.Join(", ", Parameters.Select(x => $"{x.type} {x.name}"));
+            ? string.Join(", ", Parameters.Skip(1).Select(x => x.AsDefinition))
+            : string.Join(", ", Parameters.Select(x => x.AsDefinition));
         var parametersNameOnly = IsInstance
-            ? string.Join(", ", Parameters.Skip(1).Select(x => x.name))
-            : string.Join(", ", Parameters.Select(x => x.name));
+            ? string.Join(", ", Parameters.Skip(1).Select(x => x.AsCaller))
+            : string.Join(", ", Parameters.Select(x => x.AsCaller));
         var header = IsInstance
             ? $"public unsafe {returnType} {Name}({parameters})"
             : $"public unsafe static {returnType} {Name}({parameters})";
@@ -80,18 +117,19 @@ public readonly struct MethodDefinition
             }
             else
             {
+                method.AppendLine(
+                    $"var returnValue = {Call}({ptrExpression}{dotSplit}{parametersNameOnly});");
                 if (isCreateByReturn)
                 {
-                    method.AppendLine(
-                        $"var value = {Call}({ptrExpression}{dotSplit}{parametersNameOnly});");
+
                     method.AppendLine(
                         $"var ptr = ({ReturnType}*)UnsafeUtility.MallocTracked(sizeof(void**), UnsafeUtility.AlignOf<IntPtr>(), Allocator.Persistent, 1);");
-                    method.AppendLine($"*ptr = value;");
+                    method.AppendLine($"*ptr = returnValue;");
                     method.AppendLine($"return new {returnType}() {{ Ptr = ptr }};");
                 }
                 else
                 {
-                    method.AppendLine($"return {Call}({ptrExpression}{dotSplit}{parametersNameOnly});");
+                    method.AppendLine(returnExpression ?? $"return returnValue;");
                 }
             }
         }
@@ -127,6 +165,11 @@ public readonly struct StructDefinition(string typeName, ImmutableArray<MethodDe
                 {
                     func.AppendLine($"return *Ptr;");
                 }
+            }
+
+            if (IsInstance && isSuper)
+            {
+                cls.AppendLine($"public unsafe {TypeName} As{TypeName} => new {TypeName}() {{ Ptr = (JPH_{TypeName}**)Ptr }};");
             }
 
             foreach (var methodDef in Methods)
