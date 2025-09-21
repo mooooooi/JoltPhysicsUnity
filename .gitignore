@@ -11,3 +11,4 @@ zig-cache/
 .idea/
 
 Jolt~/
+.DS_Store
