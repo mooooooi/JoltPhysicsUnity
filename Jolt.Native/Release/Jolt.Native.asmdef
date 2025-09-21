@@ -1,0 +1,16 @@
+{
+    "name": "Jolt.Native",
+    "rootNamespace": "",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "JOLT_RELEASE"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
