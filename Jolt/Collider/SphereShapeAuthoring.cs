@@ -1,3 +1,4 @@
+using System;
 using Drawing;
 using Unity.Mathematics;
 using UnityEngine;
@@ -5,13 +6,10 @@ using UnityEngine;
 namespace Jolt.Collider
 {
     [DisallowMultipleComponent]
-    public class CapsuleCollider : MonoBehaviourGizmos, IPhysicsShape
+    public class SphereShapeAuthoring : MonoBehaviourGizmos, IPhysicsShape
     {
-        public float HalfHeight = 0.5f;
-        
-        public float Radius = 0.5f;
-        
-        private CapsuleShape m_Shape;
+        public float Capsule = 1f;
+        private Jolt.SphereShape m_Shape;
         private uint m_BodyId;
 
         private void OnDestroy()
@@ -27,20 +25,19 @@ namespace Jolt.Collider
         {
             if (!m_Shape.IsCreated)
             {
-                m_Shape = CapsuleShape.Create(HalfHeight, Radius);
+                m_Shape = Jolt.SphereShape.Create(Capsule);
             }
 
             return m_Shape.AsShape;
         }
-        
+
         public override  void DrawGizmos()
         {
             if (GizmoContext.InSelection(this))
             {
                 using(Draw.WithMatrix(transform.localToWorldMatrix))
-                    Draw.WireCapsule(- transform.up * HalfHeight * 2, math.up(), HalfHeight * 2f + Radius * 2, Radius);
+                    Draw.WireSphere(float3.zero, Capsule);
             }
         }
-        
     }
 }

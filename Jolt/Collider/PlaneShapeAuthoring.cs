@@ -4,15 +4,10 @@ using UnityEngine;
 
 namespace Jolt.Collider
 {
-    [DisallowMultipleComponent]
-    public class CylinderCollider : MonoBehaviourGizmos, IPhysicsShape
+    public class PlaneShapeAuthoring : MonoBehaviourGizmos, IPhysicsShape
     {
-        public float HalfHeight = 1f;
-        
-        public float Radius = 0.5f;
-        
-        private CylinderShape m_Shape;
-        private uint m_BodyId;
+        public float HalfExtends = 1f;
+        private Jolt.PlaneShape m_Shape;
 
         private void OnDestroy()
         {
@@ -23,12 +18,14 @@ namespace Jolt.Collider
             }
         }
 
-        public Shape GetOrCreateShape()
+        public unsafe Shape GetOrCreateShape()
         {
-            if (!m_Shape.IsCreated)
+            var planeSettings = new JPH_Plane
             {
-                m_Shape = CylinderShape.Create(HalfHeight, Radius);
-            }
+                normal = math.up(), distance = 0f
+            };
+
+            m_Shape = Jolt.PlaneShape.Create(&planeSettings, null, HalfExtends * 5);
 
             return m_Shape.AsShape;
         }
@@ -38,7 +35,7 @@ namespace Jolt.Collider
             if (GizmoContext.InSelection(this))
             {
                 using(Draw.WithMatrix(transform.localToWorldMatrix))
-                    Draw.WireCylinder(- transform.up * HalfHeight, math.up(), HalfHeight * 2f, Radius);
+                    Draw.WirePlane(float3.zero, math.up(), new float2(HalfExtends * 10, HalfExtends * 10));
             }
         }
     }

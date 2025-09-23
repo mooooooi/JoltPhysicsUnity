@@ -1,4 +1,3 @@
-using System;
 using Drawing;
 using Unity.Mathematics;
 using UnityEngine;
@@ -6,10 +5,13 @@ using UnityEngine;
 namespace Jolt.Collider
 {
     [DisallowMultipleComponent]
-    public class SphereCollider : MonoBehaviourGizmos, IPhysicsShape
+    public class CylinderShapeAuthoring : MonoBehaviourGizmos, IPhysicsShape
     {
-        public float Capsule = 1f;
-        private SphereShape m_Shape;
+        public float HalfHeight = 1f;
+        
+        public float Radius = 0.5f;
+        
+        private Jolt.CylinderShape m_Shape;
         private uint m_BodyId;
 
         private void OnDestroy()
@@ -25,18 +27,18 @@ namespace Jolt.Collider
         {
             if (!m_Shape.IsCreated)
             {
-                m_Shape = SphereShape.Create(Capsule);
+                m_Shape = Jolt.CylinderShape.Create(HalfHeight, Radius);
             }
 
             return m_Shape.AsShape;
         }
-
+        
         public override  void DrawGizmos()
         {
             if (GizmoContext.InSelection(this))
             {
                 using(Draw.WithMatrix(transform.localToWorldMatrix))
-                    Draw.WireSphere(float3.zero, Capsule);
+                    Draw.WireCylinder(- transform.up * HalfHeight, math.up(), HalfHeight * 2f, Radius);
             }
         }
     }

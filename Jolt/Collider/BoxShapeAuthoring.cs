@@ -4,10 +4,14 @@ using UnityEngine;
 
 namespace Jolt.Collider
 {
-    public class PlaneCollider : MonoBehaviourGizmos, IPhysicsShape
+    [DisallowMultipleComponent]
+    public class BoxShapeAuthoring : MonoBehaviourGizmos, IPhysicsShape
     {
-        public float HalfExtends = 1f;
-        private PlaneShape m_Shape;
+        public float3 HalfExtents = new float3(1, 1, 1);
+        public float ConvexRadius = 0f;
+        
+        private Jolt.BoxShape m_Shape;
+        private uint m_BodyId;
 
         private void OnDestroy()
         {
@@ -18,14 +22,12 @@ namespace Jolt.Collider
             }
         }
 
-        public unsafe Shape GetOrCreateShape()
+        public Shape GetOrCreateShape()
         {
-            var planeSettings = new JPH_Plane
+            if (!m_Shape.IsCreated)
             {
-                normal = math.up(), distance = 0f
-            };
-
-            m_Shape = PlaneShape.Create(&planeSettings, null, HalfExtends * 5);
+                m_Shape = Jolt.BoxShape.Create(HalfExtents, ConvexRadius);
+            }
 
             return m_Shape.AsShape;
         }
@@ -35,7 +37,7 @@ namespace Jolt.Collider
             if (GizmoContext.InSelection(this))
             {
                 using(Draw.WithMatrix(transform.localToWorldMatrix))
-                    Draw.WirePlane(float3.zero, math.up(), new float2(HalfExtends * 10, HalfExtends * 10));
+                    Draw.WireBox(float3.zero, HalfExtents * 2);
             }
         }
     }

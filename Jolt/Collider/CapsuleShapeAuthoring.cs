@@ -5,12 +5,13 @@ using UnityEngine;
 namespace Jolt.Collider
 {
     [DisallowMultipleComponent]
-    public class BoxCollider : MonoBehaviourGizmos, IPhysicsShape
+    public class CapsuleShapeAuthoring : MonoBehaviourGizmos, IPhysicsShape
     {
-        public float3 HalfExtents = new float3(1, 1, 1);
-        public float ConvexRadius = 0f;
+        public float HalfHeight = 0.5f;
         
-        private BoxShape m_Shape;
+        public float Radius = 0.5f;
+        
+        private Jolt.CapsuleShape m_Shape;
         private uint m_BodyId;
 
         private void OnDestroy()
@@ -26,7 +27,7 @@ namespace Jolt.Collider
         {
             if (!m_Shape.IsCreated)
             {
-                m_Shape = BoxShape.Create(HalfExtents, ConvexRadius);
+                m_Shape = Jolt.CapsuleShape.Create(HalfHeight, Radius);
             }
 
             return m_Shape.AsShape;
@@ -37,8 +38,9 @@ namespace Jolt.Collider
             if (GizmoContext.InSelection(this))
             {
                 using(Draw.WithMatrix(transform.localToWorldMatrix))
-                    Draw.WireBox(float3.zero, HalfExtents * 2);
+                    Draw.WireCapsule(- transform.up * HalfHeight * 2, math.up(), HalfHeight * 2f + Radius * 2, Radius);
             }
         }
+        
     }
 }
