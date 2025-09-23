@@ -14,6 +14,7 @@ namespace Jolt
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate bool OnAssertFailureDel(string expr, string message, string file, uint line);
         
+        [AOT.MonoPInvokeCallback(typeof(OnAssertFailureDel))]
         private static bool OnAssertFailure(string expr, string message, string file, uint line)
         {
             Debug.Log($"Jolt Assertion Failed:\n{expr}\n{message}\n{file}\n{line}");

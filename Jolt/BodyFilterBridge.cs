@@ -10,6 +10,7 @@ namespace Jolt
         private static bool IsInitialized;
         private static GCHandle Handle;
 
+        [AOT.MonoPInvokeCallback(typeof(ShouldDrawDel))]
         private static unsafe bool ShouldDraw(void* userData, JPH_Body* body)
         {
             return true;

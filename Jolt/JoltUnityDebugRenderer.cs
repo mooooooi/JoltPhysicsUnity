@@ -29,7 +29,7 @@ namespace Jolt
 
         public unsafe void Render(PhysicsSystem physicsSystem)
         {
-            Camera camera;
+            Camera camera = null;
 #if UNITY_EDITOR
             camera = UnityEditor.SceneView.lastActiveSceneView?.camera;
 #endif
