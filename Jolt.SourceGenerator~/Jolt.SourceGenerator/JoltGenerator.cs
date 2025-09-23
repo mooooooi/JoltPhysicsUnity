@@ -401,6 +401,7 @@ public class JoltGenerator : IIncrementalGenerator
         { "OffsetCenterOfMassShapeSettings", "DecoratedShapeSettings" },
         { "EmptyShape", "Shape" },
         { "EmptyShapeSettings", "ShapeSettings" },
+        { "CharacterVirtual", "CharacterBase" },
     };
 
     private static IEnumerable<StructDefinition> Parse(GeneratorSyntaxContext ctx, CancellationToken token)

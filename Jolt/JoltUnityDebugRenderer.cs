@@ -49,6 +49,11 @@ namespace Jolt
             }
         }
 
+        public void LateUpdate()
+        {
+            Render(JoltPhysicsCore.Main.PhysicsSystem);
+        }
+
         private void OnDestroy()
         {
             m_DebugRenderer.Destroy();

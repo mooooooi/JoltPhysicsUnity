@@ -8,17 +8,20 @@ namespace Jolt
 {
     public unsafe class JoltPhysicsCore : IDisposable
     {
-        private static readonly ProfilerMarker m_SaveStateMarker =  new ProfilerMarker("SaveState");
-        private static readonly ProfilerMarker m_RestoreStateMarker =  new ProfilerMarker("RestoreState");
-        private static readonly ProfilerMarker m_SimulateMarker =  new ProfilerMarker("Simulate");
-        private static readonly ProfilerMarker m_SyncTransformMarker =  new ProfilerMarker("SyncTransform");
-        
+        private static readonly ProfilerMarker m_SaveStateMarker = new ProfilerMarker("SaveState");
+        private static readonly ProfilerMarker m_RestoreStateMarker = new ProfilerMarker("RestoreState");
+        private static readonly ProfilerMarker m_SimulateMarker = new ProfilerMarker("Simulate");
+        private static readonly ProfilerMarker m_SyncTransformMarker = new ProfilerMarker("SyncTransform");
+
+        public static JoltPhysicsCore Main { get; private set; }
+
         public readonly PhysicsSystem PhysicsSystem;
         public readonly JobSystem JobSystem;
         public BodyInterface BodyInterface => PhysicsSystem.GetBodyInterface();
         
         public readonly int SaveHistoryCount;
-        
+        public bool PrintHistoryMemoryUsed;
+
         private bool m_Disposed;
         private TransformAccessArray m_Transforms;
         private NativeList<PhysicsBodyInterpolation> m_Interpolations;
@@ -34,15 +37,11 @@ namespace Jolt
             int saveHistoryCount = 0)
         {
             SaveHistoryCount = saveHistoryCount;
-            
-            JoltCore.Init();
 
             var physicsSystemSettings = default(JPH_PhysicsSystemSettings);
-            
+
             physicsSystemSettings.objectLayerPairFilter = objectLayerPairFilter.ToUnsafePtr();
-
             physicsSystemSettings.broadPhaseLayerInterface = broadPhaseLayerInterface.ToUnsafePtr();
-
             physicsSystemSettings.objectVsBroadPhaseLayerFilter = broadPhaseLayerFilter.ToUnsafePtr();
             
             PhysicsSystem = PhysicsSystem.Create(&physicsSystemSettings);
@@ -87,6 +86,8 @@ namespace Jolt
                 m_Histories.Dispose();
                 m_Histories = default;
             }
+
+            if (Main == this) Main = null;
         }
 
         public JPH_PhysicsUpdateError Tick(float deltaTime)
@@ -151,7 +152,9 @@ namespace Jolt
             m_Transforms.Add(transform);
             m_Interpolations.Add(new PhysicsBodyInterpolation()
             {
-                bodyId = bodyId, previous = transform.localToWorldMatrix, current = transform.localToWorldMatrix
+                bodyId = bodyId,
+                previous = transform.localToWorldMatrix,
+                current = transform.localToWorldMatrix
             });
         }
 
@@ -170,6 +173,12 @@ namespace Jolt
             if (index < 0) return;
             m_Transforms.RemoveAtSwapBack(index);
             m_Interpolations.RemoveAtSwapBack(index);
+        }
+
+        public void SetIsMain()
+        {
+            if (Main != null) throw new InvalidOperationException("Main JoltPhysicsCore is exists, You must dispose it first!");
+            Main = this;
         }
     }
 }
