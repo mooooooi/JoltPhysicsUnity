@@ -10,8 +10,9 @@ namespace Jolt.Collider
         public float HalfHeight = 0.5f;
         
         public float Radius = 0.5f;
+        public float3 Center;
         
-        private Jolt.CapsuleShape m_Shape;
+        private Shape m_Shape;
         private uint m_BodyId;
 
         private void OnDestroy()
@@ -23,22 +24,33 @@ namespace Jolt.Collider
             }
         }
 
-        public Shape GetOrCreateShape()
+        public unsafe Shape GetOrCreateShape()
         {
             if (!m_Shape.IsCreated)
             {
-                m_Shape = Jolt.CapsuleShape.Create(HalfHeight, Radius);
+                var halfHeight = math.max(HalfHeight, Radius);
+                var capsuleShapeSettings = CapsuleShapeSettings.Create(halfHeight - Radius, Radius);
+                var offsetShapeSettings = RotatedTranslatedShapeSettings.Create(Center, quaternion.identity, capsuleShapeSettings.AsShapeSettings.ToUnsafePtr());
+                m_Shape = offsetShapeSettings.CreateShape().AsShape;
             }
-
-            return m_Shape.AsShape;
+            return m_Shape;
         }
-        
-        public override  void DrawGizmos()
+
+        public JPH_Plane GetSupportingVolume() => new JPH_Plane()
+        {
+
+            normal = math.up(), distance = HalfHeight - math.dot(Center, math.up())
+        };
+
+        public override void DrawGizmos()
         {
             if (GizmoContext.InSelection(this))
             {
-                using(Draw.WithMatrix(transform.localToWorldMatrix))
-                    Draw.WireCapsule(- transform.up * HalfHeight * 2, math.up(), HalfHeight * 2f + Radius * 2, Radius);
+                var halfHeight = math.max(HalfHeight, Radius);
+                using (Draw.WithMatrix(transform.localToWorldMatrix))
+                {
+                    Draw.WireCapsule(-(halfHeight) * math.up() + Center, math.up(), halfHeight * 2f, Radius);
+                }
             }
         }
         
