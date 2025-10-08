@@ -93,7 +93,7 @@ public readonly struct MethodDefinition
     public void Generate(SourceCodeScopeHelper helper, bool isSuper)
     {
         var isCreateByReturn = false;
-        var isDisposing = Name == "Destroy";
+        var name = Name;
 
         var returnType = ReturnType;
         string returnExpression = null;
@@ -110,8 +110,17 @@ public readonly struct MethodDefinition
             returnExpression = "return returnValue != 0;";
         }
 
+        if (returnType is "Jolt.JPH_ShapeType" or "Jolt.JPH_ConstraintType" && name == "GetType")
+        {
+            name = "GetEnumType";
+        }
+        else if (returnType == "Jolt.JPH_ShapeType" && name == "GetSubType")
+        {
+            name = "GetSubEnumType";
+        }
+
         var isGetterLike = ReturnType == "void"
-                           && Name.StartsWith("Get")
+                           && name.StartsWith("Get")
                            && Parameters.Length == 2
                            && Parameters[1].type.EndsWith("*");
 
@@ -122,8 +131,8 @@ public readonly struct MethodDefinition
             ? string.Join(", ", Parameters.Skip(1).Select(x => x.AsCaller(isGetterLike)))
             : string.Join(", ", Parameters.Select(x => x.AsCaller(isGetterLike)));
         var header = IsInstance
-            ? $"public readonly unsafe {returnType} {Name}({parameters})"
-            : $"public unsafe static {returnType} {Name}({parameters})";
+            ? $"public readonly unsafe {returnType} {name}({parameters})"
+            : $"public unsafe static {returnType} {name}({parameters})";
 
         using (var method = helper.Scope(header))
         {
@@ -173,8 +182,8 @@ public readonly struct StructDefinition(string typeName, ImmutableArray<MethodDe
     {
         var isSuper = !string.IsNullOrEmpty(superTypeName);
 
-        if (IsInstance && !isSuper)
-            helper.AppendLine("[NativeContainer]");
+        // if (IsInstance && !isSuper)
+        //     helper.AppendLine("[NativeContainer]");
         var funcHeader = IsInstance
             ? $"public partial struct {superTypeName ?? TypeName}"
             : $"public static class {TypeName}";
