@@ -1,8 +1,13 @@
 using System;
+using Jolt.Job;
 using Unity.Collections;
+using Unity.Collections.LowLevel.Unsafe;
+using Unity.Jobs;
+using Unity.Mathematics;
 using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.Jobs;
+using UnityEngine.Rendering;
 
 namespace Jolt
 {
@@ -29,8 +34,15 @@ namespace Jolt
         private StateRecorderImpl m_StateRecorder;
         private StateRecorderFilter m_StateRecorderFilter;
 
-        private UnsafeUntypedRingBuffer m_Histories;
+        private NativeRingBuffer m_Histories;
         private byte[] m_TempBytes = new byte[4096];
+
+        private float m_InterpolationStartTime;
+        private float m_InterpolationDeltaTime;
+
+        public NativeRingBuffer Histories => m_Histories;
+        public StateRecorderFilter  StateRecorderFilter => m_StateRecorderFilter;
+        public StateRecorderImpl StateRecorder => m_StateRecorder;
 
         public JoltPhysicsCore(
             ObjectLayerPairFilter objectLayerPairFilter, BroadPhaseLayerInterface broadPhaseLayerInterface, ObjectVsBroadPhaseLayerFilter broadPhaseLayerFilter,
@@ -54,13 +66,14 @@ namespace Jolt
             
             JoltUnityDebugRendererBridge.Init();
             BodyFilterBridge.Init();
+            StateRecorderBridge.Init();
 
             if (saveHistoryCount > 0)
             {
                 m_StateRecorder = StateRecorderImpl.Create();
                 m_StateRecorderFilter = StateRecorderFilter.Create(null);
 
-                m_Histories = new UnsafeUntypedRingBuffer(Allocator.Persistent, 320, 1024);
+                m_Histories = new NativeRingBuffer(Allocator.Persistent, 320, 1024);
             }
         }
         
@@ -82,9 +95,8 @@ namespace Jolt
             {
                 m_StateRecorder.Destroy();
                 m_StateRecorderFilter.Destroy();
-             
+                
                 m_Histories.Dispose();
-                m_Histories = default;
             }
 
             if (Main == this) Main = null;
@@ -119,12 +131,54 @@ namespace Jolt
                 m_StateRecorder.Clear();
                 m_SaveStateMarker.End();
                 
-                Debug.Log($"History Buffer Size: {(ByteSize)m_Histories.AllocatedBufferLength,10}/{(ByteSize)m_Histories.BufferLength,10}, " +
-                          $"Length: {m_Histories.Length,5}/{m_Histories.Capacity,5}");
+                if (PrintHistoryMemoryUsed)
+                    Debug.Log($"History Buffer Size: {(ByteSize)m_Histories.AllocatedBufferLength,10}/{(ByteSize)m_Histories.BufferLength,10}, " +
+                              $"Length: {m_Histories.Length,5}/{m_Histories.Capacity,5}");
             }
             
             
             return ret;
+        }
+
+        public JobHandle ScheduleUpdate(float deltaTime, JobHandle dep = default)
+        {
+            m_InterpolationDeltaTime = deltaTime;
+            m_InterpolationStartTime = Time.time;
+            
+            var updateJob = new UpdatePhysicsSystemJob()
+            {
+                physics = PhysicsSystem, job = JobSystem, deltaTime = deltaTime
+            };
+            dep = updateJob.ScheduleByRef(dep);
+
+            var syncTransformJob = new SyncTransformJob()
+            {
+                bodyInterface = BodyInterface, interpolations = m_Interpolations.AsArray()
+            };
+            dep = syncTransformJob.ScheduleParallelByRef(m_Interpolations.Length, 16, dep);
+
+            var saveStateJob = new SaveStateJob()
+            {
+                histories = m_Histories, physicsSystem = PhysicsSystem, stateRecorder = m_StateRecorder,
+                stateRecorderFilter = m_StateRecorderFilter
+            };
+            dep = saveStateJob.ScheduleByRef(dep);
+            
+            return dep;
+        }
+        
+        public JobHandle ClientScheduleUpdate(float deltaTime, JobHandle dep = default)
+        {
+            m_InterpolationDeltaTime = deltaTime;
+            m_InterpolationStartTime = Time.time;
+            
+            var syncTransformJob = new SyncTransformJob()
+            {
+                bodyInterface = BodyInterface, interpolations = m_Interpolations.AsArray()
+            };
+            dep = syncTransformJob.ScheduleParallelByRef(m_Interpolations.Length, 16, dep);
+            
+            return dep;
         }
 
         public void TryRollback()
@@ -141,9 +195,10 @@ namespace Jolt
             m_RestoreStateMarker.End();
         }
 
-        public void Interpolate(float deltaTime)
+        public void Interpolate()
         {
-            var deps = NativePhysicsUtility.ScheduleInterpolateTransforms(m_Transforms, m_Interpolations.AsArray(), deltaTime);
+            var interpolationFactor = math.clamp((Time.time - m_InterpolationStartTime) / m_InterpolationDeltaTime, 0f, 1f);
+            var deps = NativePhysicsUtility.ScheduleInterpolateTransforms(m_Transforms, m_Interpolations.AsArray(), interpolationFactor);
             deps.Complete();
         }
 

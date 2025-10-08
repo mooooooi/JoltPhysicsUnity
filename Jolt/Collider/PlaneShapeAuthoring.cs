@@ -25,7 +25,9 @@ namespace Jolt.Collider
                 normal = math.up(), distance = 0f
             };
 
-            m_Shape = Jolt.PlaneShape.Create(&planeSettings, null, HalfExtends * 5);
+            var localScale = transform.localScale;
+            var scale = math.min(localScale.x, localScale.z);
+            m_Shape = Jolt.PlaneShape.Create(&planeSettings, null, scale * HalfExtends * 5);
 
             return m_Shape.AsShape;
         }

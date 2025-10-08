@@ -4,12 +4,12 @@ namespace Jolt
 {
     public static class BodyFilterBridge
     {
-        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        private unsafe delegate bool ShouldDrawDel(void* userData, JPH_Body* body);
 
         private static bool IsInitialized;
         private static GCHandle Handle;
 
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private unsafe delegate bool ShouldDrawDel(void* userData, JPH_Body* body);
         [AOT.MonoPInvokeCallback(typeof(ShouldDrawDel))]
         private static unsafe bool ShouldDraw(void* userData, JPH_Body* body)
         {

@@ -2263,7 +2263,8 @@ namespace Jolt
         public static extern void JPH_PhysicsSystem_SaveState([NativeTypeName("const JPH_PhysicsSystem *")] JPH_PhysicsSystem* system, JPH_StateRecorderImpl* inStream, JPH_StateRecorderState inState, [NativeTypeName("const JPH_StateRecorderFilter *")] JPH_StateRecorderFilter* inFilter);
 
         [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern void JPH_PhysicsSystem_RestoreState([NativeTypeName("const JPH_PhysicsSystem *")] JPH_PhysicsSystem* system, JPH_StateRecorderImpl* inStream, [NativeTypeName("const JPH_StateRecorderFilter *")] JPH_StateRecorderFilter* inFilter);
+        [return: NativeTypeName("bool")]
+        public static extern byte JPH_PhysicsSystem_RestoreState([NativeTypeName("const JPH_PhysicsSystem *")] JPH_PhysicsSystem* system, JPH_StateRecorderImpl* inStream, [NativeTypeName("const JPH_StateRecorderFilter *")] JPH_StateRecorderFilter* inFilter);
 
         [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern void JPH_PhysicsSystem_DrawBodies(JPH_PhysicsSystem* system, [NativeTypeName("const JPH_DrawSettings *")] JPH_DrawSettings* settings, JPH_DebugRenderer* renderer, [NativeTypeName("const JPH_BodyDrawFilter *")] JPH_BodyDrawFilter* bodyFilter);
@@ -5509,6 +5510,16 @@ namespace Jolt
 
         [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern void JPH_StateRecorderImpl_Clear(JPH_StateRecorderImpl* recorder);
+
+        [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern void JPH_StateRecorderImpl_SetValidating(JPH_StateRecorderImpl* recorder, [NativeTypeName("bool")] byte inValidating);
+
+        [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("bool")]
+        public static extern byte JPH_StateRecorderImpl_IsValidating(JPH_StateRecorderImpl* recorder);
+
+        [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern void JPH_StateRecorderFilter_SetProcs([NativeTypeName("const JPH_StateRecorderFilter_Procs *")] JPH_StateRecorderFilter_Procs* procs);
 
         [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern JPH_StateRecorderFilter* JPH_StateRecorderFilter_Create(void* userData);

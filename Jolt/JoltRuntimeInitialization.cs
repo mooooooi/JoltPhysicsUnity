@@ -17,7 +17,7 @@ namespace Jolt
         [AOT.MonoPInvokeCallback(typeof(OnAssertFailureDel))]
         private static bool OnAssertFailure(string expr, string message, string file, uint line)
         {
-            Debug.Log($"Jolt Assertion Failed:\n{expr}\n{message}\n{file}\n{line}");
+            Debug.LogAssertionFormat("Jolt Assertion Failed: {0}\n{1}\n{2}:{3}", expr, message, file, line);
             return false;
         }
     }
