@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
@@ -14,45 +15,44 @@ namespace Jolt
             public int start;
             public int length;
         }
-        
+
         private UnsafeRingQueue<Entry> m_Entries;
 
         private int m_PayloadAllocatedBytes;
         private int m_PaddingAllocatedBytes;
         private int m_BufferLength;
-        
+
         [NativeDisableUnsafePtrRestriction]
         private void* m_Buffer;
-        
-        private readonly AllocatorManager.AllocatorHandle m_Allocator;
-        
+
+        private AllocatorManager.AllocatorHandle m_Allocator;
+
         internal readonly AllocatorManager.AllocatorHandle Allocator => m_Allocator;
         public readonly int Capacity => m_Entries.Capacity;
         public readonly int Length => m_Entries.Length;
-        
+
         public readonly int AllocatedBufferLength => m_PayloadAllocatedBytes + m_PaddingAllocatedBytes;
         public readonly int BufferLength => m_BufferLength;
-        
+
         public UnsafeRingBuffer(AllocatorManager.AllocatorHandle allocator, int capacity, int initialBlockSize)
         {
             m_Entries = new UnsafeRingQueue<Entry>(capacity, allocator);
             m_PayloadAllocatedBytes = 0;
             m_PaddingAllocatedBytes = 0;
             m_BufferLength = NextPowerOfTwo(capacity * initialBlockSize);
-            m_Buffer = UnsafeUtility.MallocTracked(
-                m_BufferLength, 2, allocator.ToAllocator, 0);
-    
+            m_Buffer = allocator.Allocate(sizeof(byte), sizeof(byte), m_BufferLength);
+
             m_Allocator = allocator;
         }
-        
+
         public void Dispose()
         {
             m_Entries.Dispose();
             m_BufferLength = 0;
-            UnsafeUtility.FreeTracked(m_Buffer, m_Allocator.ToAllocator);
+            AllocatorManager.Free(m_Allocator, m_Buffer);
             m_Buffer = null;
         }
-        
+
         private static int NextPowerOfTwo(int value)
         {
             --value;
@@ -63,11 +63,11 @@ namespace Jolt
             value |= value >> 1;
             return value + 1;
         }
-        
+
         private void EnsureRemaining(int required, out int start, out int padding)
         {
             var headOffset = 0;
-            
+
             ref var entriesHeader = ref UnsafeUtility.As<UnsafeRingQueue<Entry>, UnsafeRingQueueHeader<Entry>>(ref m_Entries);
             if (entriesHeader.TryPeek(out var head))
             {
@@ -86,15 +86,15 @@ namespace Jolt
                 start = 0;
                 padding = remainToTail;
             }
-            
+
             var oldBuffer = (byte*)m_Buffer;
-            
+
             var newBufferLength = NextPowerOfTwo(m_PayloadAllocatedBytes + required);
-            var newBuffer = (byte*)UnsafeUtility.MallocTracked(newBufferLength, 2, Allocator.ToAllocator, 0);
+            var newBuffer = (byte*)m_Allocator.Allocate(sizeof(byte), sizeof(byte), newBufferLength);
 
             m_PayloadAllocatedBytes = 0;
             m_PaddingAllocatedBytes = 0;
-            
+
             for (var i = 0; i < entriesHeader.m_Filled; i++)
             {
                 ref var entry = ref entriesHeader.Ptr[(i + entriesHeader.m_Read) % entriesHeader.m_Capacity];
@@ -102,7 +102,7 @@ namespace Jolt
 
                 entry.padding = 0;
                 entry.start = m_PayloadAllocatedBytes;
-                    
+
                 m_PayloadAllocatedBytes += entry.length;
             }
 
@@ -111,10 +111,10 @@ namespace Jolt
 
             m_Buffer = newBuffer;
             m_BufferLength = newBufferLength;
-            
+
             UnsafeUtility.FreeTracked(oldBuffer, m_Allocator.ToAllocator);
         }
-    
+
         public void Enqueue(void* readonlyData, int readonlyDataLength)
         {
             if (m_Entries.Length == m_Entries.Capacity)
@@ -122,20 +122,22 @@ namespace Jolt
                 var entry = m_Entries.Dequeue();
                 m_PayloadAllocatedBytes -= entry.length;
                 m_PaddingAllocatedBytes -= entry.padding;
-                
+
                 Assert.IsTrue(m_PayloadAllocatedBytes >= 0);
                 Assert.IsTrue(m_PaddingAllocatedBytes >= 0);
             }
-            
+
             EnsureRemaining(readonlyDataLength, out var start, out var padding);
-            
+
             UnsafeUtility.MemCpy((byte*)m_Buffer + start, readonlyData, readonlyDataLength);
-            
+
             m_Entries.Enqueue(new Entry()
             {
-                start = start, length = readonlyDataLength, padding = padding
+                start = start,
+                length = readonlyDataLength,
+                padding = padding
             });
-            
+
             m_PayloadAllocatedBytes += readonlyDataLength;
             m_PaddingAllocatedBytes += padding;
         }
@@ -155,10 +157,10 @@ namespace Jolt
 
             ptr = (byte*)m_Buffer + head.start;
             length = head.length;
-            
+
             return true;
         }
-        
+
         public bool TryPeekTail(out void* ptr, out int length)
         {
             if (m_Entries.Length == 0)
@@ -174,7 +176,7 @@ namespace Jolt
 
             ptr = (byte*)m_Buffer + head.start;
             length = head.length;
-            
+
             return true;
         }
 
@@ -185,7 +187,7 @@ namespace Jolt
 
             m_PayloadAllocatedBytes = 0;
             m_PaddingAllocatedBytes = 0;
-            
+
             for (var i = 0; i < entriesHeader.m_Filled; i++)
             {
                 ref var entry = ref entriesHeader.Ptr[(i + entriesHeader.m_Read) % entriesHeader.m_Capacity];
@@ -198,6 +200,30 @@ namespace Jolt
         {
             ref var entriesHeader = ref UnsafeUtility.As<UnsafeRingQueue<Entry>, UnsafeRingQueueHeader<Entry>>(ref m_Entries);
             entriesHeader.Clear();
+        }
+
+        internal static UnsafeRingBuffer* Create<U>(int initialCapacity, int initialBlockSize, ref U allocator) where U : unmanaged, AllocatorManager.IAllocator
+        {
+            var buffer = (UnsafeRingBuffer*)allocator.Allocate(UnsafeUtility.SizeOf<UnsafeRingBuffer>(), UnsafeUtility.AlignOf<UnsafeRingBuffer>(), 1);
+            *buffer = new UnsafeRingBuffer(allocator.Handle, initialCapacity, initialBlockSize);
+            return buffer;
+        }
+
+        public static void Destroy(UnsafeRingBuffer* buffer)
+        {
+            CheckNull(buffer);
+            var allocator = buffer->Allocator;
+            buffer->Dispose();
+            AllocatorManager.Free(allocator, buffer);
+        }
+
+        [Conditional("ENABLE_UNITY_COLLECTIONS_CHECKS"), Conditional("UNITY_DOTS_DEBUG")]
+        internal static void CheckNull(void* listData)
+        {
+            if (listData == null)
+            {
+                throw new InvalidOperationException("UnsafeRingBuffer has yet to be created or has been destroyed!");
+            }
         }
     }
 }

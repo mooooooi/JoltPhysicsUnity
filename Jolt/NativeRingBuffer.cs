@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Unity.Burst;
 using Unity.Collections;
@@ -71,25 +72,35 @@ namespace Jolt
         [NativeDisableUnsafePtrRestriction]
         private UnsafeRingBuffer* m_Buffer;
 
+        public readonly bool IsCreated
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => m_Buffer != null;
+        }
+
         public readonly int Capacity => m_Buffer->Capacity;
         public readonly int Length => m_Buffer->Length;
         public readonly int AllocatedBufferLength => m_Buffer->AllocatedBufferLength;
         public readonly int BufferLength => m_Buffer->BufferLength;
-        
+
         public NativeRingBuffer(
-            AllocatorManager.AllocatorHandle allocator, int initialCapacity, int initialBlockSize)
+            int initialCapacity, int initialBlockSize, AllocatorManager.AllocatorHandle allocator)
+        {
+            this = default;
+            var temp = allocator;
+            Initialize(initialCapacity, initialBlockSize, ref temp);
+        }
+
+        internal void Initialize<U>(int initialCapacity, int initialBlockSize, ref U allocator) where U : unmanaged, AllocatorManager.IAllocator
         {
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
             CheckInitialCapacity(initialCapacity);
 
-            m_Safety = CollectionHelper.CreateSafetyHandle(allocator);
+            m_Safety = CollectionHelper.CreateSafetyHandle(allocator.ToAllocator);
 
             CollectionHelper.SetStaticSafetyId<NativeRingBuffer>(ref m_Safety, ref s_staticSafetyId.Data);
 #endif
-            
-            m_Buffer = (UnsafeRingBuffer*)UnsafeUtility.MallocTracked(
-                UnsafeUtility.SizeOf<UnsafeRingBuffer>(), UnsafeUtility.AlignOf<UnsafeRingBuffer>(), allocator.ToAllocator, 0);
-            *m_Buffer = new UnsafeRingBuffer(allocator, initialCapacity, initialBlockSize);
+            m_Buffer = UnsafeRingBuffer.Create(initialCapacity, initialBlockSize, ref allocator);
         }
         
         [Conditional("ENABLE_UNITY_COLLECTIONS_CHECKS"), Conditional("UNITY_DOTS_DEBUG")]
@@ -111,11 +122,16 @@ namespace Jolt
         
         public void Dispose()
         {
-            AtomicSafetyHandle.CheckWriteAndThrow(m_Safety);
-            
-            var allocator = m_Buffer->Allocator;
-            m_Buffer->Dispose();
-            UnsafeUtility.FreeTracked(m_Buffer, allocator.ToAllocator);
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+            if (!AtomicSafetyHandle.IsDefaultValue(m_Safety))
+            {
+                AtomicSafetyHandle.CheckExistsAndThrow(m_Safety);
+            }
+#endif
+            if (!IsCreated) return;
+            CollectionHelper.DisposeSafetyHandle(ref m_Safety);
+
+            UnsafeRingBuffer.Destroy(m_Buffer);
             m_Buffer = null;
         }
 
