@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Assertions;
 
@@ -9,202 +10,144 @@ namespace Jolt
 {
     public unsafe struct UnsafeRingBuffer : IDisposable
     {
-        private struct Entry
+        public struct Entry
         {
-            public int padding;
-            public int start;
-            public int length;
+            public ulong SequenceLShift1;
+            public int Bytes;
         }
 
-        private UnsafeRingQueue<Entry> m_Entries;
+        private int m_Capacity;
+        public readonly int Capacity => m_Capacity;
+        private int m_SlotCapacity;
+        public readonly int SlotCapacity => m_SlotCapacity;
+        private Entry* m_Entries;
+        public readonly bool IsCreated => m_Entries != null;
 
-        private int m_PayloadAllocatedBytes;
-        private int m_PaddingAllocatedBytes;
-        private int m_BufferLength;
-
-        [NativeDisableUnsafePtrRestriction]
-        private void* m_Buffer;
-
+        [NativeDisableUnsafePtrRestriction] internal void* m_Buffer;
+        internal int m_BufferLength;
+        public readonly int BufferLength => m_BufferLength;
+        
         private AllocatorManager.AllocatorHandle m_Allocator;
 
-        internal readonly AllocatorManager.AllocatorHandle Allocator => m_Allocator;
-        public readonly int Capacity => m_Entries.Capacity;
-        public readonly int Length => m_Entries.Length;
-
-        public readonly int AllocatedBufferLength => m_PayloadAllocatedBytes + m_PaddingAllocatedBytes;
-        public readonly int BufferLength => m_BufferLength;
-
-        public UnsafeRingBuffer(AllocatorManager.AllocatorHandle allocator, int capacity, int initialBlockSize)
+        public UnsafeRingBuffer(AllocatorManager.AllocatorHandle allocator, int capacity, int initialSlotCapacity)
         {
-            m_Entries = new UnsafeRingQueue<Entry>(capacity, allocator);
-            m_PayloadAllocatedBytes = 0;
-            m_PaddingAllocatedBytes = 0;
-            m_BufferLength = NextPowerOfTwo(capacity * initialBlockSize);
-            m_Buffer = allocator.Allocate(sizeof(byte), sizeof(byte), m_BufferLength);
+            m_Capacity = capacity;
+            m_SlotCapacity = 0;
+            m_Entries = AllocatorManager.Allocate<Entry>(allocator, capacity);
+            UnsafeUtility.MemClear(m_Entries, sizeof(Entry) * m_Capacity);
 
+            m_Buffer = null;
+            m_BufferLength = 0;
+            
             m_Allocator = allocator;
+
+            EnsureSlotCapacity(initialSlotCapacity);
         }
 
         public void Dispose()
         {
-            m_Entries.Dispose();
+            if (m_Buffer != null)
+            {
+                AllocatorManager.Free(m_Allocator, m_Buffer);
+                m_Buffer = null;
+            }
+
+            if (m_Entries != null)
+            {
+                AllocatorManager.Free(m_Allocator, m_Entries);
+                m_Entries = null;
+            }
+
+            m_Capacity = 0;
+            m_SlotCapacity = 0;
+
             m_BufferLength = 0;
-            AllocatorManager.Free(m_Allocator, m_Buffer);
-            m_Buffer = null;
+            m_Allocator = Allocator.Invalid;
         }
 
-        private static int NextPowerOfTwo(int value)
+        public void EnsureSlotCapacity(int value)
         {
-            --value;
-            value |= value >> 16 /*0x10*/;
-            value |= value >> 8;
-            value |= value >> 4;
-            value |= value >> 2;
-            value |= value >> 1;
-            return value + 1;
-        }
+            var newBufferLength = math.ceilpow2(value * m_Capacity);
+            if (newBufferLength <= m_BufferLength) return;
 
-        private void EnsureRemaining(int required, out int start, out int padding)
-        {
-            var headOffset = 0;
-
-            ref var entriesHeader = ref UnsafeUtility.As<UnsafeRingQueue<Entry>, UnsafeRingQueueHeader<Entry>>(ref m_Entries);
-            if (entriesHeader.TryPeek(out var head))
+            var newBuffer = AllocatorManager.Allocate<byte>(m_Allocator, newBufferLength);
+            if (m_Buffer != null && m_SlotCapacity > 0)
             {
-                headOffset = head.start + head.length;
+                UnsafeUtility.MemCpyStride(newBuffer, value, m_Buffer, m_SlotCapacity, m_SlotCapacity, m_Capacity);
+                AllocatorManager.Free(m_Allocator, m_Buffer);
+                m_Buffer = null;
             }
-
-            var remainToTail = m_BufferLength - headOffset;
-            if (remainToTail >= required)
-            {
-                start = headOffset;
-                padding = 0;
-            }
-
-            if (m_BufferLength - remainToTail - AllocatedBufferLength >= required)
-            {
-                start = 0;
-                padding = remainToTail;
-            }
-
-            var oldBuffer = (byte*)m_Buffer;
-
-            var newBufferLength = NextPowerOfTwo(m_PayloadAllocatedBytes + required);
-            var newBuffer = (byte*)m_Allocator.Allocate(sizeof(byte), sizeof(byte), newBufferLength);
-
-            m_PayloadAllocatedBytes = 0;
-            m_PaddingAllocatedBytes = 0;
-
-            for (var i = 0; i < entriesHeader.m_Filled; i++)
-            {
-                ref var entry = ref entriesHeader.Ptr[(i + entriesHeader.m_Read) % entriesHeader.m_Capacity];
-                UnsafeUtility.MemCpy(newBuffer + m_PayloadAllocatedBytes, oldBuffer + entry.start, entry.length);
-
-                entry.padding = 0;
-                entry.start = m_PayloadAllocatedBytes;
-
-                m_PayloadAllocatedBytes += entry.length;
-            }
-
-            start = m_PayloadAllocatedBytes;
-            padding = 0;
 
             m_Buffer = newBuffer;
             m_BufferLength = newBufferLength;
-
-            UnsafeUtility.FreeTracked(oldBuffer, m_Allocator.ToAllocator);
+            m_SlotCapacity = value;
         }
-
-        public void Enqueue(void* readonlyData, int readonlyDataLength)
-        {
-            if (m_Entries.Length == m_Entries.Capacity)
-            {
-                var entry = m_Entries.Dequeue();
-                m_PayloadAllocatedBytes -= entry.length;
-                m_PaddingAllocatedBytes -= entry.padding;
-
-                Assert.IsTrue(m_PayloadAllocatedBytes >= 0);
-                Assert.IsTrue(m_PaddingAllocatedBytes >= 0);
-            }
-
-            EnsureRemaining(readonlyDataLength, out var start, out var padding);
-
-            UnsafeUtility.MemCpy((byte*)m_Buffer + start, readonlyData, readonlyDataLength);
-
-            m_Entries.Enqueue(new Entry()
-            {
-                start = start,
-                length = readonlyDataLength,
-                padding = padding
-            });
-
-            m_PayloadAllocatedBytes += readonlyDataLength;
-            m_PaddingAllocatedBytes += padding;
-        }
-
-        public bool TryPeek(out void* ptr, out int length)
-        {
-            if (m_Entries.Length == 0)
-            {
-                ptr = null;
-                length = 0;
-                return false;
-            }
-
-            ref var entriesHeader = ref UnsafeUtility.As<UnsafeRingQueue<Entry>, UnsafeRingQueueHeader<Entry>>(ref m_Entries);
-            var ret = entriesHeader.TryPeek(out var head);
-            Assert.IsTrue(ret);
-
-            ptr = (byte*)m_Buffer + head.start;
-            length = head.length;
-
-            return true;
-        }
-
-        public bool TryPeekTail(out void* ptr, out int length)
-        {
-            if (m_Entries.Length == 0)
-            {
-                ptr = null;
-                length = 0;
-                return false;
-            }
-
-            ref var entriesHeader = ref UnsafeUtility.As<UnsafeRingQueue<Entry>, UnsafeRingQueueHeader<Entry>>(ref m_Entries);
-            var ret = entriesHeader.TryPeekTail(out var head);
-            Assert.IsTrue(ret);
-
-            ptr = (byte*)m_Buffer + head.start;
-            length = head.length;
-
-            return true;
-        }
-
-        public void Rollback(int length)
-        {
-            ref var entriesHeader = ref UnsafeUtility.As<UnsafeRingQueue<Entry>, UnsafeRingQueueHeader<Entry>>(ref m_Entries);
-            entriesHeader.SetLength(length);
-
-            m_PayloadAllocatedBytes = 0;
-            m_PaddingAllocatedBytes = 0;
-
-            for (var i = 0; i < entriesHeader.m_Filled; i++)
-            {
-                ref var entry = ref entriesHeader.Ptr[(i + entriesHeader.m_Read) % entriesHeader.m_Capacity];
-                m_PayloadAllocatedBytes += entry.length;
-                m_PaddingAllocatedBytes += entry.padding;
-            }
-        }
-
+        
         public void Clear()
         {
-            ref var entriesHeader = ref UnsafeUtility.As<UnsafeRingQueue<Entry>, UnsafeRingQueueHeader<Entry>>(ref m_Entries);
-            entriesHeader.Clear();
+            if (!IsCreated) return;
+            UnsafeUtility.MemClear(m_Entries, sizeof(Entry) * m_Capacity);
         }
 
-        internal static UnsafeRingBuffer* Create<U>(int initialCapacity, int initialBlockSize, ref U allocator) where U : unmanaged, AllocatorManager.IAllocator
+        public bool Contains(uint sequence)
         {
-            var buffer = (UnsafeRingBuffer*)allocator.Allocate(UnsafeUtility.SizeOf<UnsafeRingBuffer>(), UnsafeUtility.AlignOf<UnsafeRingBuffer>(), 1);
+            var index = sequence % m_Capacity;
+            var entry = m_Entries[index];
+            return entry.SequenceLShift1 == 0 || entry.SequenceLShift1 >> 1 != sequence ;
+        }
+
+        public bool TryGetValue(uint sequence, out Span<byte> buffer)
+        {
+            var index = sequence % m_Capacity;
+            var entry = m_Entries[index];
+            if (entry.SequenceLShift1 == 0 || entry.SequenceLShift1 >> 1 != sequence)
+            {
+                buffer = Span<byte>.Empty;
+                return false;
+            }
+
+            buffer = new Span<byte>((byte*)m_Buffer + m_SlotCapacity * index, entry.Bytes);
+            return true;
+        }
+
+        public void Allocate(uint sequence, int bytes, out Span<byte> buffer)
+        {
+            CheckNull(m_Buffer);
+            
+            var index = sequence % m_Capacity;
+            if (m_Entries[index].SequenceLShift1 > 0 && m_Entries[index].SequenceLShift1 >> 1 > sequence)
+            {
+                buffer = Span<byte>.Empty;
+                return;
+            }
+
+            EnsureSlotCapacity(bytes);
+            m_Entries[index].SequenceLShift1 = sequence << 1;
+            m_Entries[index].Bytes = bytes;
+            
+            buffer = new Span<byte>((byte*)m_Buffer + m_SlotCapacity * index, bytes);
+        }
+
+        public bool FreeAt(uint sequence)
+        {
+            if (!Contains(sequence)) return false;
+            var index = sequence % m_Capacity;
+            FreeAtSlot((int)index);
+            return true;
+        }
+
+        public void FreeAtSlot(int slot)
+        {
+            if (!IsCreated) return;
+            m_Entries[slot].SequenceLShift1 = 0;
+            m_Entries[slot].Bytes = 0;
+        }
+#region Internal
+        internal static UnsafeRingBuffer* Create<U>(int initialCapacity, int initialBlockSize, ref U allocator)
+            where U : unmanaged, AllocatorManager.IAllocator
+        {
+            var buffer = (UnsafeRingBuffer*)allocator.Allocate(UnsafeUtility.SizeOf<UnsafeRingBuffer>(),
+                UnsafeUtility.AlignOf<UnsafeRingBuffer>(), 1);
             *buffer = new UnsafeRingBuffer(allocator.Handle, initialCapacity, initialBlockSize);
             return buffer;
         }
@@ -212,7 +155,7 @@ namespace Jolt
         public static void Destroy(UnsafeRingBuffer* buffer)
         {
             CheckNull(buffer);
-            var allocator = buffer->Allocator;
+            var allocator = buffer->m_Allocator;
             buffer->Dispose();
             AllocatorManager.Free(allocator, buffer);
         }
@@ -225,5 +168,6 @@ namespace Jolt
                 throw new InvalidOperationException("UnsafeRingBuffer has yet to be created or has been destroyed!");
             }
         }
+#endregion
     }
 }

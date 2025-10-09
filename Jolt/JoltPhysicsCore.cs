@@ -97,7 +97,7 @@ namespace Jolt
             if (Main == this) Main = null;
         }
 
-        public JobHandle ScheduleUpdate(float deltaTime, NativeRingBuffer histories, JobHandle dep = default)
+        public JobHandle ScheduleUpdate(float deltaTime, uint frameId, NativeRingBuffer histories, JobHandle dep = default)
         {
             m_InterpolationDeltaTime = deltaTime;
             m_InterpolationStartTime = Time.time;
@@ -116,7 +116,9 @@ namespace Jolt
 
             var saveStateJob = new SaveStateJob()
             {
-                histories = histories, physicsSystem = PhysicsSystem, stateRecorder = m_StateRecorder,
+                frameId = frameId,
+                histories = histories, 
+                physicsSystem = PhysicsSystem, stateRecorder = m_StateRecorder,
                 stateRecorderFilter = m_StateRecorderFilter
             };
             dep = saveStateJob.ScheduleByRef(dep);
@@ -140,15 +142,15 @@ namespace Jolt
 
         public void TryRollback(NativeRingBuffer histories)
         {
-            if (!histories.TryPeek(out var historyPtr, out var historyPtrLength)) return;
-            m_RestoreStateMarker.Begin();
-                
-            m_StateRecorder.WriteBytes(historyPtr, historyPtrLength);
-            PhysicsSystem.RestoreState(m_StateRecorder.ToUnsafePtr(), m_StateRecorderFilter.ToUnsafePtr());
-            m_StateRecorder.Clear();
-                
-            histories.Rollback(1);
-            m_RestoreStateMarker.End();
+            // if (!histories.TryPeek(out var historyPtr, out var historyPtrLength)) return;
+            // m_RestoreStateMarker.Begin();
+            //     
+            // m_StateRecorder.WriteBytes(historyPtr, historyPtrLength);
+            // PhysicsSystem.RestoreState(m_StateRecorder.ToUnsafePtr(), m_StateRecorderFilter.ToUnsafePtr());
+            // m_StateRecorder.Clear();
+            //     
+            // histories.Rollback(1);
+            // m_RestoreStateMarker.End();
         }
 
         public void Interpolate()

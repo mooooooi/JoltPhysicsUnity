@@ -11,6 +11,8 @@ namespace Jolt.Job
         public PhysicsSystem physicsSystem;
         public StateRecorderImpl stateRecorder;
         public StateRecorderFilter stateRecorderFilter;
+
+        public uint frameId;
         public NativeRingBuffer histories;
 
         public void Execute()
@@ -24,7 +26,7 @@ namespace Jolt.Job
             var ptr = stackalloc byte[requiredDataSize];
 
             stateRecorder.ReadBytes(ptr, requiredDataSize);
-            histories.Enqueue(ptr, requiredDataSize);
+            histories.Allocate(frameId, ptr, requiredDataSize);
             stateRecorder.Clear();
         }
     }
