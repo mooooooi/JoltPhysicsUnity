@@ -97,7 +97,7 @@ namespace Jolt
             if (Main == this) Main = null;
         }
 
-        public JobHandle ScheduleUpdate(float deltaTime, uint frameId, NativeRingBuffer histories, JobHandle dep = default)
+        public JobHandle ScheduleUpdate(float deltaTime, JobHandle dep = default)
         {
             m_InterpolationDeltaTime = deltaTime;
             m_InterpolationStartTime = Time.time;
@@ -113,24 +113,6 @@ namespace Jolt
                 bodyInterface = BodyInterface, interpolations = m_Interpolations.AsArray()
             };
             dep = syncTransformJob.ScheduleParallelByRef(m_Interpolations.Length, 16, dep);
-
-            // var saveStateJob = new SaveStateJob()
-            // {
-            //     frameId = frameId,
-            //     histories = histories, 
-            //     physicsSystem = PhysicsSystem, stateRecorder = m_StateRecorder,
-            //     stateRecorderFilter = m_StateRecorderFilter
-            // };
-            // dep = saveStateJob.ScheduleByRef(dep);
-            
-            var saveStateJob = new SaveAlignedJob()
-            {
-                frameId = frameId,
-                histories = histories, 
-                physicsSystem = PhysicsSystem,
-                stateRecorderFilter = m_StateRecorderFilter
-            };
-            dep = saveStateJob.ScheduleByRef(dep);
             
             return dep;
         }
