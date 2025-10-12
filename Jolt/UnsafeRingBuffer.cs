@@ -20,7 +20,7 @@ namespace Jolt
         public readonly int Capacity => m_Capacity;
         private int m_SlotCapacity;
         public readonly int SlotCapacity => m_SlotCapacity;
-        private Entry* m_Entries;
+        internal Entry* m_Entries;
         public readonly bool IsCreated => m_Entries != null;
 
         [NativeDisableUnsafePtrRestriction] internal void* m_Buffer;

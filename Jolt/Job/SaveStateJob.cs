@@ -30,4 +30,28 @@ namespace Jolt.Job
             stateRecorder.Clear();
         }
     }
+
+    [BurstCompile]
+    public unsafe struct SaveAlignedJob : IJob
+    {
+        public uint frameId;
+        public PhysicsSystem physicsSystem;
+        public StateRecorderFilter stateRecorderFilter;
+        public NativeRingBuffer histories;
+        
+        public void Execute()
+        {
+            var builder = physicsSystem.SaveAlignedState(
+                JPH_StateRecorderState.All,
+                stateRecorderFilter.ToUnsafePtr());
+            
+            var requiredDataSize = builder.GetRequiredByteCount();
+            histories.Allocate(frameId, (int)requiredDataSize, out var span);
+            fixed (void* ptr = span)
+            {
+                builder.Flush(ptr, requiredDataSize);
+            }
+            // builder.Destroy();
+        }
+    }
 }

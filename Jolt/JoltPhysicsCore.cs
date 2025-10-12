@@ -114,11 +114,20 @@ namespace Jolt
             };
             dep = syncTransformJob.ScheduleParallelByRef(m_Interpolations.Length, 16, dep);
 
-            var saveStateJob = new SaveStateJob()
+            // var saveStateJob = new SaveStateJob()
+            // {
+            //     frameId = frameId,
+            //     histories = histories, 
+            //     physicsSystem = PhysicsSystem, stateRecorder = m_StateRecorder,
+            //     stateRecorderFilter = m_StateRecorderFilter
+            // };
+            // dep = saveStateJob.ScheduleByRef(dep);
+            
+            var saveStateJob = new SaveAlignedJob()
             {
                 frameId = frameId,
                 histories = histories, 
-                physicsSystem = PhysicsSystem, stateRecorder = m_StateRecorder,
+                physicsSystem = PhysicsSystem,
                 stateRecorderFilter = m_StateRecorderFilter
             };
             dep = saveStateJob.ScheduleByRef(dep);

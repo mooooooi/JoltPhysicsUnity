@@ -11,6 +11,7 @@ using UnityEngine.Assertions;
 namespace Jolt
 {
     [NativeContainer]
+    [DebuggerTypeProxy(typeof(DebuggerProxy<JPH_PhysicsSystemState>))]
     public unsafe struct NativeRingBuffer : IDisposable
     {
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
@@ -138,6 +139,52 @@ namespace Jolt
             AtomicSafetyHandle.CheckWriteAndThrow(m_Safety);
 
             m_Buffer->FreeAtSlot(slot);
+        }
+
+        public class DebuggerProxy<T> where T : unmanaged
+        {
+            public struct Header
+            {
+                public uint length;
+                public ulong hash;
+            }
+
+            public struct DisplayEntry
+            {
+                public Header header;
+                public T value;
+            }
+            
+            private NativeRingBuffer m_Buffer;
+            public DebuggerProxy(NativeRingBuffer buffer)
+            {
+                m_Buffer = buffer;
+            }
+            
+            public DisplayEntry?[] Items
+            {
+                get
+                {
+                    var items = new DisplayEntry?[m_Buffer.Capacity];
+                    for (var i = 0; i < m_Buffer.Capacity; i++)
+                    {
+                        var entry = m_Buffer.m_Buffer->m_Entries[i];
+                        if (entry.SequenceLShift1 == 0)
+                        {
+                            continue;
+                        }
+
+                        var ptr = (byte*)m_Buffer.m_Buffer->m_Buffer;
+                        DisplayEntry displayEntry;
+                        displayEntry.header.length = *(uint*)ptr;
+                        displayEntry.header.hash = *(ulong*)(ptr + 8);
+                        displayEntry.value = *(T*)(ptr + i * m_Buffer.SlotCapacity + 16);
+
+                        items[i] = displayEntry;
+                    }
+                    return items;
+                }
+            }
         }
     }
 }

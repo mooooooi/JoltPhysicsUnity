@@ -268,7 +268,11 @@ namespace Jolt
     {
     }
 
-    [NativeTypeName("unsigned int")]
+    public partial struct JPH_BlobBuilder
+    {
+    }
+
+    [NativeTypeName("uint32_t")]
     public enum JPH_PhysicsUpdateError : uint
     {
         None = 0,
@@ -279,23 +283,21 @@ namespace Jolt
         _JPH_PhysicsUpdateError_Force32 = 0x7fffffff,
     }
 
-    [NativeTypeName("unsigned int")]
-    public enum JPH_BodyType : uint
+    [NativeTypeName("uint8_t")]
+    public enum JPH_BodyType : byte
     {
         Rigid = 0,
         Soft = 1,
         _JPH_BodyType_Count,
-        _JPH_BodyType_Force32 = 0x7fffffff,
     }
 
-    [NativeTypeName("unsigned int")]
-    public enum JPH_MotionType : uint
+    [NativeTypeName("uint8_t")]
+    public enum JPH_MotionType : byte
     {
         Static = 0,
         Kinematic = 1,
         Dynamic = 2,
         _JPH_MotionType_Count,
-        _JPH_MotionType_Force32 = 0x7fffffff,
     }
 
     [NativeTypeName("unsigned int")]
@@ -318,8 +320,8 @@ namespace Jolt
         _JPH_ValidateResult_Force32 = 0x7fffffff,
     }
 
-    [NativeTypeName("unsigned int")]
-    public enum JPH_ShapeType : uint
+    [NativeTypeName("uint8_t")]
+    public enum JPH_ShapeType : byte
     {
         Convex = 0,
         Compound = 1,
@@ -332,11 +334,10 @@ namespace Jolt
         User3 = 8,
         User4 = 9,
         _JPH_ShapeType_Count,
-        _JPH_ShapeType_Force32 = 0x7fffffff,
     }
 
-    [NativeTypeName("unsigned int")]
-    public enum JPH_ShapeSubType : uint
+    [NativeTypeName("uint8_t")]
+    public enum JPH_ShapeSubType : byte
     {
         Sphere = 0,
         Box = 1,
@@ -354,7 +355,6 @@ namespace Jolt
         HeightField = 13,
         SoftBody = 14,
         _JPH_ShapeSubType_Count,
-        _JPH_ShapeSubType_Force32 = 0x7fffffff,
     }
 
     [NativeTypeName("unsigned int")]
@@ -399,23 +399,21 @@ namespace Jolt
         _JPH_ConstraintSpace_Force32 = 0x7fffffff,
     }
 
-    [NativeTypeName("unsigned int")]
-    public enum JPH_MotionQuality : uint
+    [NativeTypeName("uint8_t")]
+    public enum JPH_MotionQuality : byte
     {
         Discrete = 0,
         LinearCast = 1,
         _JPH_MotionQuality_Count,
-        _JPH_MotionQuality_Force32 = 0x7fffffff,
     }
 
-    [NativeTypeName("unsigned int")]
-    public enum JPH_OverrideMassProperties : uint
+    [NativeTypeName("uint8_t")]
+    public enum JPH_OverrideMassProperties : byte
     {
         CalculateMassAndInertia,
         CalculateInertia,
         MassAndInertiaProvided,
         _JPH_JPH_OverrideMassProperties_Count,
-        _JPH_JPH_OverrideMassProperties_Force32 = 0x7FFFFFFF,
     }
 
     [NativeTypeName("unsigned int")]
@@ -429,31 +427,28 @@ namespace Jolt
         _JPH_GroundState_Force32 = 0x7FFFFFFF,
     }
 
-    [NativeTypeName("unsigned int")]
-    public enum JPH_BackFaceMode : uint
+    [NativeTypeName("uint8_t")]
+    public enum JPH_BackFaceMode : byte
     {
         IgnoreBackFaces,
         CollideWithBackFaces,
         _JPH_BackFaceMode_Count,
-        _JPH_BackFaceMode_Force32 = 0x7FFFFFFF,
     }
 
-    [NativeTypeName("unsigned int")]
-    public enum JPH_ActiveEdgeMode : uint
+    [NativeTypeName("uint8_t")]
+    public enum JPH_ActiveEdgeMode : byte
     {
         CollideOnlyWithActive,
         CollideWithAll,
         _JPH_ActiveEdgeMode_Count,
-        _JPH_ActiveEdgeMode_Force32 = 0x7FFFFFFF,
     }
 
-    [NativeTypeName("unsigned int")]
-    public enum JPH_CollectFacesMode : uint
+    [NativeTypeName("uint8_t")]
+    public enum JPH_CollectFacesMode : byte
     {
         CollectFaces,
         NoFaces,
         _JPH_CollectFacesMode_Count,
-        _JPH_CollectFacesMode_Force32 = 0x7FFFFFFF,
     }
 
     [NativeTypeName("unsigned int")]
@@ -477,22 +472,20 @@ namespace Jolt
         _JPH_CollisionCollectorType_Force32 = 0x7FFFFFFF,
     }
 
-    [NativeTypeName("unsigned int")]
-    public enum JPH_SwingType : uint
+    [NativeTypeName("uint8_t")]
+    public enum JPH_SwingType : byte
     {
         Cone,
         Pyramid,
         _JPH_SwingType_Count,
-        _JPH_SwingType_Force32 = 0x7FFFFFFF,
     }
 
-    [NativeTypeName("unsigned int")]
-    public enum JPH_SpringMode : uint
+    [NativeTypeName("uint8_t")]
+    public enum JPH_SpringMode : byte
     {
         FrequencyAndDamping = 0,
         StiffnessAndDamping = 1,
         _JPH_SpringMode_Count,
-        _JPH_SpringMode_Force32 = 0x7FFFFFFF,
     }
 
     [NativeTypeName("unsigned int")]
@@ -545,17 +538,16 @@ namespace Jolt
         _JPH_Mesh_Shape_BuildQuality_Force32 = 0x7FFFFFFF,
     }
 
-    [NativeTypeName("unsigned int")]
-    public enum JPH_TransmissionMode : uint
+    [NativeTypeName("uint8_t")]
+    public enum JPH_TransmissionMode : byte
     {
         Auto = 0,
         Manual = 1,
         _JPH_TransmissionMode_Count,
-        _JPH_TransmissionMode_Force32 = 0x7FFFFFFF,
     }
 
-    [NativeTypeName("unsigned int")]
-    public enum JPH_StateRecorderState : uint
+    [NativeTypeName("uint8_t")]
+    public enum JPH_StateRecorderState : byte
     {
         None = 0,
         Global = 1,
@@ -2075,6 +2067,89 @@ namespace Jolt
 
         [NativeTypeName("bool (*)(void *, const JPH_BodyID, const JPH_BodyID)")]
         public IntPtr ShouldRestoreContact;
+    }
+
+    public partial struct JPH_GlobalState
+    {
+        public float previousStepDeltaTime;
+
+        [NativeTypeName("JPH_Vec3")]
+        public float3 gravity;
+    }
+
+    public partial struct JPH_Sphere
+    {
+        [NativeTypeName("JPH_Vec3")]
+        public float3 center;
+
+        public float radius;
+    }
+
+    public partial struct JPH_MotionPropertiesState
+    {
+        [NativeTypeName("JPH_Vec3")]
+        public float3 linearVelocity;
+
+        [NativeTypeName("JPH_Vec3")]
+        public float3 angularVelocity;
+
+        [NativeTypeName("JPH_Vec3")]
+        public float3 force;
+
+        [NativeTypeName("JPH_Vec3")]
+        public float3 torque;
+
+        [NativeTypeName("JPH_Sphere[3]")]
+        public _sleepTestSpheres_e__FixedBuffer sleepTestSpheres;
+
+        public float sleepTestTimer;
+
+        [NativeTypeName("bool")]
+        public byte allowSleeping;
+
+        public partial struct _sleepTestSpheres_e__FixedBuffer
+        {
+            public JPH_Sphere e0;
+            public JPH_Sphere e1;
+            public JPH_Sphere e2;
+
+            public unsafe ref JPH_Sphere this[int index]
+            {
+                get
+                {
+                    fixed (JPH_Sphere* pThis = &e0)
+                    {
+                        return ref pThis[index];
+                    }
+                }
+            }
+        }
+    }
+
+    public partial struct JPH_BodyState
+    {
+        [NativeTypeName("JPH_BodyID")]
+        public uint id;
+
+        [NativeTypeName("bool")]
+        public byte isActive;
+
+        [NativeTypeName("JPH_Vec3")]
+        public float3 position;
+
+        [NativeTypeName("JPH_Quat")]
+        public quaternion rotation;
+
+        public JPH_MotionPropertiesState motionProperties;
+    }
+
+    public partial struct JPH_PhysicsSystemState
+    {
+        public JPH_StateRecorderState flags;
+
+        public JPH_GlobalState global;
+
+        public JPH_BlobArray<JPH_BodyState> bodies;
     }
 
     public static unsafe partial class UnsafeBindings
@@ -5526,5 +5601,22 @@ namespace Jolt
 
         [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern void JPH_StateRecorderFilter_Destroy([NativeTypeName("const JPH_StateRecorderFilter *")] JPH_StateRecorderFilter* filter);
+
+        [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern JPH_BlobBuilder* JPH_PhysicsSystem_SaveAlignedState([NativeTypeName("const JPH_PhysicsSystem *")] JPH_PhysicsSystem* physicsSystem, JPH_StateRecorderState inFlags, JPH_StateRecorderFilter* inFilter);
+
+        [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("bool")]
+        public static extern byte JPH_PhysicsSystem_RestoreAlignedState(JPH_PhysicsSystem* physicsSystem, void* buffer, [NativeTypeName("uint32_t")] uint bufferLength);
+
+        [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("uint32_t")]
+        public static extern uint JPH_BlobBuilder_GetRequiredByteCount(JPH_BlobBuilder* inBuilder);
+
+        [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern void JPH_BlobBuilder_Flush(JPH_BlobBuilder* inBuilder, void* inBuffer, [NativeTypeName("uint32_t")] uint inBufferLength);
+
+        [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern void JPH_BlobBuilder_Destroy([NativeTypeName("const JPH_BlobBuilder *")] JPH_BlobBuilder* inBuilder);
     }
 }
