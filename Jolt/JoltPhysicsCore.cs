@@ -116,20 +116,6 @@ namespace Jolt
             
             return dep;
         }
-        
-        public JobHandle ClientScheduleUpdate(float deltaTime, JobHandle dep = default)
-        {
-            m_InterpolationDeltaTime = deltaTime;
-            m_InterpolationStartTime = Time.time;
-            
-            var syncTransformJob = new SyncTransformJob()
-            {
-                bodyInterface = BodyInterface, interpolations = m_Interpolations.AsArray()
-            };
-            dep = syncTransformJob.ScheduleParallelByRef(m_Interpolations.Length, 16, dep);
-            
-            return dep;
-        }
 
         public void TryRollback(NativeRingBuffer histories)
         {

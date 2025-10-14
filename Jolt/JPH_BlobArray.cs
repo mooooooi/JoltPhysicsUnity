@@ -28,9 +28,5 @@ namespace Jolt
             if (index < 0 || index >= mLength)
                 throw new IndexOutOfRangeException();
         }
-
-        public unsafe Span<T> Span => mLength < 0 
-            ? Span<T>.Empty
-            : new Span<T>((byte*)UnsafeUtility.AddressOf(ref mOffsetPtr) + mOffsetPtr, mLength);
     }
 }

@@ -2134,6 +2134,9 @@ namespace Jolt
         [NativeTypeName("bool")]
         public byte isActive;
 
+        [NativeTypeName("bool")]
+        public byte isSoft;
+
         [NativeTypeName("JPH_Vec3")]
         public float3 position;
 
@@ -2143,6 +2146,74 @@ namespace Jolt
         public JPH_MotionPropertiesState motionProperties;
     }
 
+    public partial struct JPH_BodyPair
+    {
+        [NativeTypeName("JPH_BodyID")]
+        public uint BodyA;
+
+        [NativeTypeName("JPH_BodyID")]
+        public uint BodyB;
+    }
+
+    public unsafe partial struct JPH_CachedContactPointState
+    {
+        [NativeTypeName("JPH_Vec3")]
+        public float3 position1;
+
+        [NativeTypeName("JPH_Vec3")]
+        public float3 position2;
+
+        public float nonPenetrationLambda;
+
+        [NativeTypeName("float[2]")]
+        public fixed float frictionLambda[2];
+    }
+
+    public partial struct JPH_CachedManifoldState
+    {
+        [NativeTypeName("JPH_Vec3")]
+        public float3 contactNormal;
+
+        public JPH_BlobArray<JPH_CachedContactPointState> contactPoints;
+    }
+
+    public partial struct JPH_ManifoldKeyValueState
+    {
+        public JPH_SubShapeIDPair key;
+
+        public JPH_CachedManifoldState value;
+    }
+
+    public partial struct JPH_CachedBodyPairState
+    {
+        [NativeTypeName("JPH_Vec3")]
+        public float3 deltaPosition;
+
+        [NativeTypeName("JPH_Vec3")]
+        public float3 deltaRotation;
+
+        public JPH_BlobArray<JPH_ManifoldKeyValueState> manifolds;
+    }
+
+    public partial struct JPH_BodyPairKeyValueState
+    {
+        public JPH_BodyPair key;
+
+        public JPH_CachedBodyPairState value;
+    }
+
+    public partial struct JPH_ManifoldCacheState
+    {
+        public JPH_BlobArray<JPH_BodyPairKeyValueState> bodyPairs;
+
+        public JPH_BlobArray<JPH_SubShapeIDPair> ccdManifolds;
+    }
+
+    public partial struct JPH_ContactConstraintState
+    {
+        public JPH_ManifoldCacheState manifold;
+    }
+
     public partial struct JPH_PhysicsSystemState
     {
         public JPH_StateRecorderState flags;
@@ -2150,6 +2221,8 @@ namespace Jolt
         public JPH_GlobalState global;
 
         public JPH_BlobArray<JPH_BodyState> bodies;
+
+        public JPH_ContactConstraintState contacts;
     }
 
     public static unsafe partial class UnsafeBindings
