@@ -29,7 +29,7 @@ namespace Jolt
         
         private AllocatorManager.AllocatorHandle m_Allocator;
 
-        public UnsafeRingBuffer(AllocatorManager.AllocatorHandle allocator, int capacity, int initialSlotCapacity)
+        public UnsafeRingBuffer(int capacity, int initialSlotCapacity, AllocatorManager.AllocatorHandle allocator)
         {
             m_Capacity = capacity;
             m_SlotCapacity = 0;
@@ -148,7 +148,7 @@ namespace Jolt
         {
             var buffer = (UnsafeRingBuffer*)allocator.Allocate(UnsafeUtility.SizeOf<UnsafeRingBuffer>(),
                 UnsafeUtility.AlignOf<UnsafeRingBuffer>(), 1);
-            *buffer = new UnsafeRingBuffer(allocator.Handle, initialCapacity, initialBlockSize);
+            *buffer = new UnsafeRingBuffer(initialCapacity, initialBlockSize, allocator.Handle);
             return buffer;
         }
 
