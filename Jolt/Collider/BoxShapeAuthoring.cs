@@ -26,7 +26,8 @@ namespace Jolt.Collider
         {
             if (!m_Shape.IsCreated)
             {
-                m_Shape = Jolt.BoxShape.Create(HalfExtents, ConvexRadius);
+                var scale = transform.localScale;
+                m_Shape = Jolt.BoxShape.Create(math.mul(HalfExtents, float3x3.Scale(scale)), ConvexRadius);
             }
 
             return m_Shape.AsShape;

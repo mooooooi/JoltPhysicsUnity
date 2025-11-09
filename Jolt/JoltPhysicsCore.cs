@@ -130,6 +130,20 @@ namespace Jolt
             return dep;
         }
 
+        public void Run(float deltaTime)
+        {
+            m_InterpolationDeltaTime = deltaTime;
+            m_InterpolationStartTime = Time.time;
+            
+            PhysicsSystem.Update(deltaTime, 1, JobSystem.ToUnsafePtr());
+            
+            var syncTransformJob = new SyncTransformJob()
+            {
+                bodyInterface = BodyInterface, interpolations = m_Interpolations.AsArray()
+            };
+            syncTransformJob.RunBatchByRef(m_Interpolations.Length);
+        }
+
         public bool TryRollback(UnsafeRingBuffer histories, uint sequenceId)
         {
             if (!histories.TryGetValue(sequenceId, out var buffer)) return false;
