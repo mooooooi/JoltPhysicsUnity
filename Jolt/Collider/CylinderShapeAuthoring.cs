@@ -27,7 +27,8 @@ namespace Jolt.Collider
         {
             if (!m_Shape.IsCreated)
             {
-                m_Shape = Jolt.CylinderShape.Create(HalfHeight, Radius);
+                var scale3 = (float3) transform.localScale;
+                m_Shape = Jolt.CylinderShape.Create(scale3.y * HalfHeight, math.min(scale3.x, scale3.y) * Radius);
             }
 
             return m_Shape.AsShape;
