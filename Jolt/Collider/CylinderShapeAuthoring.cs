@@ -28,13 +28,13 @@ namespace Jolt.Collider
             if (!m_Shape.IsCreated)
             {
                 var scale3 = (float3) transform.localScale;
-                m_Shape = Jolt.CylinderShape.Create(scale3.y * HalfHeight, math.min(scale3.x, scale3.y) * Radius);
+                m_Shape = Jolt.CylinderShape.Create(scale3.y * HalfHeight, math.min(scale3.x, scale3.z) * Radius);
             }
 
             return m_Shape.AsShape;
         }
         
-        public override  void DrawGizmos()
+        public override void DrawGizmos()
         {
             if (GizmoContext.InSelection(this))
             {
