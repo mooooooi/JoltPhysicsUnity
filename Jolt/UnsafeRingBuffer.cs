@@ -98,6 +98,12 @@ namespace Jolt
 
         public bool TryGetValue(uint sequence, out Span<byte> buffer)
         {
+            if (m_Capacity == 0)
+            {
+                buffer = Span<byte>.Empty;
+                return false;
+            }
+            
             var index = sequence % m_Capacity;
             var entry = m_Entries[index];
             if (entry.SequenceLShift1 == 0 || entry.SequenceLShift1 >> 1 != sequence)
