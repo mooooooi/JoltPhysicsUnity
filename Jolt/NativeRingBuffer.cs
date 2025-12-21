@@ -77,7 +77,10 @@ namespace Jolt
             }
 #endif
             if (!IsCreated) return;
+            
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
             CollectionHelper.DisposeSafetyHandle(ref m_Safety);
+#endif
 
             UnsafeRingBuffer.Destroy(m_Buffer);
             m_Buffer = null;
@@ -85,35 +88,45 @@ namespace Jolt
 
         public void EnsureSlotCapacity(int value)
         {
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
             AtomicSafetyHandle.CheckWriteAndThrow(m_Safety);
+#endif
             
             m_Buffer->EnsureSlotCapacity(value);
         }
 
         public void Clear()
         {
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
             AtomicSafetyHandle.CheckWriteAndThrow(m_Safety);
+#endif
             
             m_Buffer->Clear();
         }
 
         public bool Contains(uint sequence)
         {
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
             AtomicSafetyHandle.CheckReadAndThrow(m_Safety);
+#endif
             
             return m_Buffer->Contains(sequence);
         }
 
         public bool TryGetValue(uint sequence, out Span<byte> buffer)
         {
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
             AtomicSafetyHandle.CheckReadAndThrow(m_Safety);
+#endif
             
             return m_Buffer->TryGetValue(sequence, out buffer);
         }
 
         public void Allocate(uint sequence, int bytes, out Span<byte> buffer)
         {
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
             AtomicSafetyHandle.CheckWriteAndThrow(m_Safety);
+#endif
             
             m_Buffer->Allocate(sequence, bytes, out buffer);
         }
@@ -129,14 +142,18 @@ namespace Jolt
 
         public bool FreeAt(uint sequence)
         {
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
             AtomicSafetyHandle.CheckWriteAndThrow(m_Safety);
+#endif
             
             return m_Buffer->FreeAt(sequence);
         }
 
         public void FreeAtSlot(int slot)
         {
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
             AtomicSafetyHandle.CheckWriteAndThrow(m_Safety);
+#endif
 
             m_Buffer->FreeAtSlot(slot);
         }
