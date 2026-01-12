@@ -3,6 +3,7 @@ using Jolt.Job;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
+using Unity.Jobs.LowLevel.Unsafe;
 using Unity.Mathematics;
 using Unity.Profiling;
 using UnityEngine;
@@ -34,13 +35,11 @@ namespace Jolt
         private StateRecorderImpl m_StateRecorder;
         private StateRecorderFilter m_StateRecorderFilter;
 
-        private NativeRingBuffer m_Histories;
         private byte[] m_TempBytes = new byte[4096];
 
         private float m_InterpolationStartTime;
         private float m_InterpolationDeltaTime;
 
-        public NativeRingBuffer Histories => m_Histories;
         public StateRecorderFilter  StateRecorderFilter => m_StateRecorderFilter;
         public StateRecorderImpl StateRecorder => m_StateRecorder;
 
@@ -72,8 +71,6 @@ namespace Jolt
             {
                 m_StateRecorder = StateRecorderImpl.Create();
                 m_StateRecorderFilter = StateRecorderFilter.Create(null);
-
-                m_Histories = new NativeRingBuffer(Allocator.Persistent, 320, 1024);
             }
         }
         
@@ -95,104 +92,66 @@ namespace Jolt
             {
                 m_StateRecorder.Destroy();
                 m_StateRecorderFilter.Destroy();
-                
-                m_Histories.Dispose();
+               
             }
 
             if (Main == this) Main = null;
         }
 
-        public JPH_PhysicsUpdateError Tick(float deltaTime)
+        public int GetInterpolationCount()
         {
-            
-            m_SimulateMarker.Begin();
-            var ret = PhysicsSystem.Update(deltaTime, 1, JobSystem.ToUnsafePtr());
-            m_SimulateMarker.End();
-
-            m_SyncTransformMarker.Begin();
-            NativePhysicsUtility.SyncTransforms(BodyInterface, m_Interpolations.AsArray());
-            m_SyncTransformMarker.End();
-
-            if (SaveHistoryCount > 0)
-            {
-                m_SaveStateMarker.Begin();
-                PhysicsSystem.SaveState(m_StateRecorder.ToUnsafePtr(), JPH_StateRecorderState.All, m_StateRecorderFilter.ToUnsafePtr());
-                var requiredDataSize = m_StateRecorder.GetDataSize();
-                if (requiredDataSize > m_TempBytes.Length)
-                {
-                    m_TempBytes = new byte[Mathf.NextPowerOfTwo(requiredDataSize)];
-                }
-
-                fixed (byte* ptr = m_TempBytes)
-                {
-                    m_StateRecorder.ReadBytes(ptr, requiredDataSize);
-                    m_Histories.Enqueue(ptr, requiredDataSize);
-                }
-                m_StateRecorder.Clear();
-                m_SaveStateMarker.End();
-                
-                if (PrintHistoryMemoryUsed)
-                    Debug.Log($"History Buffer Size: {(ByteSize)m_Histories.AllocatedBufferLength,10}/{(ByteSize)m_Histories.BufferLength,10}, " +
-                              $"Length: {m_Histories.Length,5}/{m_Histories.Capacity,5}");
-            }
-            
-            
-            return ret;
+            return m_Interpolations.Length;
         }
 
         public JobHandle ScheduleUpdate(float deltaTime, JobHandle dep = default)
         {
-            m_InterpolationDeltaTime = deltaTime;
-            m_InterpolationStartTime = Time.time;
-            
-            var updateJob = new UpdatePhysicsSystemJob()
-            {
-                physics = PhysicsSystem, job = JobSystem, deltaTime = deltaTime
-            };
-            dep = updateJob.ScheduleByRef(dep);
-
-            var syncTransformJob = new SyncTransformJob()
-            {
-                bodyInterface = BodyInterface, interpolations = m_Interpolations.AsArray()
-            };
-            dep = syncTransformJob.ScheduleParallelByRef(m_Interpolations.Length, 16, dep);
-
-            var saveStateJob = new SaveStateJob()
-            {
-                histories = m_Histories, physicsSystem = PhysicsSystem, stateRecorder = m_StateRecorder,
-                stateRecorderFilter = m_StateRecorderFilter
-            };
-            dep = saveStateJob.ScheduleByRef(dep);
-            
-            return dep;
+            return ScheduleUpdate(m_Interpolations.Length, deltaTime, dep);
         }
         
-        public JobHandle ClientScheduleUpdate(float deltaTime, JobHandle dep = default)
+        public JobHandle ScheduleUpdate(int length, float deltaTime, JobHandle dep = default, bool simulate = true)
         {
             m_InterpolationDeltaTime = deltaTime;
             m_InterpolationStartTime = Time.time;
+
+            if (simulate)
+            {
+                var updateJob = new UpdatePhysicsSystemJob()
+                {
+                    physics = PhysicsSystem, job = JobSystem, deltaTime = deltaTime
+                };
+                dep = updateJob.ScheduleByRef(dep);
+            }
+
+            var syncTransformJob = new SyncTransformJob()
+            {
+                bodyInterface = BodyInterface, interpolations = m_Interpolations.AsArray()
+            };
+            dep = syncTransformJob.ScheduleParallelByRef(length, 16, dep);
+            return dep;
+        }
+
+        public void Run(float deltaTime)
+        {
+            m_InterpolationDeltaTime = deltaTime;
+            m_InterpolationStartTime = Time.time;
+            
+            PhysicsSystem.Update(deltaTime, 1, JobSystem.ToUnsafePtr());
             
             var syncTransformJob = new SyncTransformJob()
             {
                 bodyInterface = BodyInterface, interpolations = m_Interpolations.AsArray()
             };
-            dep = syncTransformJob.ScheduleParallelByRef(m_Interpolations.Length, 16, dep);
-            
-            return dep;
+            syncTransformJob.RunBatchByRef(m_Interpolations.Length);
         }
 
-        public void TryRollback()
+        public bool TryRollback(UnsafeRingBuffer histories, uint sequenceId)
         {
-            if (!m_Histories.TryPeek(out var historyPtr, out var historyPtrLength)) return;
-            m_RestoreStateMarker.Begin();
-                
-            m_StateRecorder.WriteBytes(historyPtr, historyPtrLength);
-            PhysicsSystem.RestoreState(m_StateRecorder.ToUnsafePtr(), m_StateRecorderFilter.ToUnsafePtr());
-            m_StateRecorder.Clear();
-                
-            m_Histories.Rollback(1);
-                
-            m_RestoreStateMarker.End();
+            if (!histories.TryGetValue(sequenceId, out var buffer)) return false;
+
+            fixed (void* bufferPtr = buffer)
+            {
+                return PhysicsSystem.RestoreAlignedState(bufferPtr, (uint)buffer.Length);
+            }
         }
 
         public void Interpolate()

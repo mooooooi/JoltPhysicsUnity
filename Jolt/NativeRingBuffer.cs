@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Unity.Burst;
 using Unity.Collections;
@@ -9,58 +10,8 @@ using UnityEngine.Assertions;
 
 namespace Jolt
 {
-    [StructLayout(LayoutKind.Sequential)]
-    unsafe struct UnsafeRingQueueHeader<T> where T : unmanaged
-    {
-        public T* Ptr;
-        public AllocatorManager.AllocatorHandle Allocator;
-
-        public readonly int m_Capacity;
-        public int m_Filled;
-        public int m_Write;
-        public int m_Read;
-
-        public bool TryPeek(out T head)
-        {
-            if (m_Filled == 0)
-            {
-                head = default;
-                return false;
-            }
-
-            head = Ptr[m_Read];
-            return true;
-        }
-
-        public bool TryPeekTail(out T tail)
-        {
-            if (m_Filled == 0)
-            {
-                tail = default;
-                return false;
-            }
-
-            tail = Ptr[(m_Write - 1 + m_Capacity) % m_Capacity];
-            return true;
-        }
-
-        public void Clear()
-        {
-            m_Filled = 0;
-            m_Write = 0;
-            m_Read = 0;
-        }
-
-        public void SetLength(int length)
-        {
-            Assert.IsTrue(length >= 0 && length < m_Capacity);
-
-            m_Filled = length;
-            m_Write = (m_Read + length) % m_Capacity;
-        }
-    }
-
     [NativeContainer]
+    [DebuggerTypeProxy(typeof(DebuggerProxy<JPH_PhysicsSystemState>))]
     public unsafe struct NativeRingBuffer : IDisposable
     {
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
@@ -71,25 +22,33 @@ namespace Jolt
         [NativeDisableUnsafePtrRestriction]
         private UnsafeRingBuffer* m_Buffer;
 
+        public readonly bool IsCreated
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => m_Buffer != null;
+        }
+
         public readonly int Capacity => m_Buffer->Capacity;
-        public readonly int Length => m_Buffer->Length;
-        public readonly int AllocatedBufferLength => m_Buffer->AllocatedBufferLength;
-        public readonly int BufferLength => m_Buffer->BufferLength;
-        
+        public readonly int SlotCapacity => m_Buffer->SlotCapacity;
+
         public NativeRingBuffer(
-            AllocatorManager.AllocatorHandle allocator, int initialCapacity, int initialBlockSize)
+            int initialCapacity, int initialBlockSize, AllocatorManager.AllocatorHandle allocator)
+        {
+            this = default;
+            var temp = allocator;
+            Initialize(initialCapacity, initialBlockSize, ref temp);
+        }
+
+        internal void Initialize<U>(int initialCapacity, int initialBlockSize, ref U allocator) where U : unmanaged, AllocatorManager.IAllocator
         {
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
             CheckInitialCapacity(initialCapacity);
 
-            m_Safety = CollectionHelper.CreateSafetyHandle(allocator);
+            m_Safety = CollectionHelper.CreateSafetyHandle(allocator.ToAllocator);
 
             CollectionHelper.SetStaticSafetyId<NativeRingBuffer>(ref m_Safety, ref s_staticSafetyId.Data);
 #endif
-            
-            m_Buffer = (UnsafeRingBuffer*)UnsafeUtility.MallocTracked(
-                UnsafeUtility.SizeOf<UnsafeRingBuffer>(), UnsafeUtility.AlignOf<UnsafeRingBuffer>(), allocator.ToAllocator, 0);
-            *m_Buffer = new UnsafeRingBuffer(allocator, initialCapacity, initialBlockSize);
+            m_Buffer = UnsafeRingBuffer.Create(initialCapacity, initialBlockSize, ref allocator);
         }
         
         [Conditional("ENABLE_UNITY_COLLECTIONS_CHECKS"), Conditional("UNITY_DOTS_DEBUG")]
@@ -111,47 +70,138 @@ namespace Jolt
         
         public void Dispose()
         {
-            AtomicSafetyHandle.CheckWriteAndThrow(m_Safety);
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+            if (!AtomicSafetyHandle.IsDefaultValue(m_Safety))
+            {
+                AtomicSafetyHandle.CheckExistsAndThrow(m_Safety);
+            }
+#endif
+            if (!IsCreated) return;
             
-            var allocator = m_Buffer->Allocator;
-            m_Buffer->Dispose();
-            UnsafeUtility.FreeTracked(m_Buffer, allocator.ToAllocator);
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+            CollectionHelper.DisposeSafetyHandle(ref m_Safety);
+#endif
+
+            UnsafeRingBuffer.Destroy(m_Buffer);
             m_Buffer = null;
         }
 
-        public void Enqueue(void* readonlyData, int readonlyDataLength)
+        public void EnsureSlotCapacity(int value)
         {
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
             AtomicSafetyHandle.CheckWriteAndThrow(m_Safety);
+#endif
             
-            m_Buffer->Enqueue(readonlyData, readonlyDataLength);
-        }
-
-        public bool TryPeek(out void* ptr, out int length)
-        {
-            AtomicSafetyHandle.CheckReadAndThrow(m_Safety);
-            
-            return m_Buffer->TryPeek(out ptr, out length);
-        }
-
-        public bool TryPeekTail(out void* ptr, out int length)
-        {
-            AtomicSafetyHandle.CheckReadAndThrow(m_Safety);
-            
-            return m_Buffer->TryPeekTail(out ptr, out length);
-        }
-
-        public void Rollback(int length)
-        {
-            AtomicSafetyHandle.CheckWriteAndThrow(m_Safety);
-            
-            m_Buffer->Rollback(length);
+            m_Buffer->EnsureSlotCapacity(value);
         }
 
         public void Clear()
         {
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
             AtomicSafetyHandle.CheckWriteAndThrow(m_Safety);
+#endif
             
             m_Buffer->Clear();
+        }
+
+        public bool Contains(uint sequence)
+        {
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+            AtomicSafetyHandle.CheckReadAndThrow(m_Safety);
+#endif
+            
+            return m_Buffer->Contains(sequence);
+        }
+
+        public bool TryGetValue(uint sequence, out Span<byte> buffer)
+        {
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+            AtomicSafetyHandle.CheckReadAndThrow(m_Safety);
+#endif
+            
+            return m_Buffer->TryGetValue(sequence, out buffer);
+        }
+
+        public void Allocate(uint sequence, int bytes, out Span<byte> buffer)
+        {
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+            AtomicSafetyHandle.CheckWriteAndThrow(m_Safety);
+#endif
+            
+            m_Buffer->Allocate(sequence, bytes, out buffer);
+        }
+
+        public void Allocate(uint sequence, void* src, int bytes)
+        {
+            Allocate(sequence, bytes, out Span<byte> buffer);
+            fixed (void* dst = buffer)
+            {
+                UnsafeUtility.MemCpy(dst, src, bytes);
+            }
+        }
+
+        public bool FreeAt(uint sequence)
+        {
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+            AtomicSafetyHandle.CheckWriteAndThrow(m_Safety);
+#endif
+            
+            return m_Buffer->FreeAt(sequence);
+        }
+
+        public void FreeAtSlot(int slot)
+        {
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+            AtomicSafetyHandle.CheckWriteAndThrow(m_Safety);
+#endif
+
+            m_Buffer->FreeAtSlot(slot);
+        }
+
+        public class DebuggerProxy<T> where T : unmanaged
+        {
+            public struct Header
+            {
+                public uint length;
+                public ulong hash;
+            }
+
+            public struct DisplayEntry
+            {
+                public Header header;
+                public T value;
+            }
+            
+            private NativeRingBuffer m_Buffer;
+            public DebuggerProxy(NativeRingBuffer buffer)
+            {
+                m_Buffer = buffer;
+            }
+            
+            public DisplayEntry?[] Items
+            {
+                get
+                {
+                    var items = new DisplayEntry?[m_Buffer.Capacity];
+                    for (var i = 0; i < m_Buffer.Capacity; i++)
+                    {
+                        var entry = m_Buffer.m_Buffer->m_Entries[i];
+                        if (entry.SequenceLShift1 == 0)
+                        {
+                            continue;
+                        }
+
+                        var ptr = (byte*)m_Buffer.m_Buffer->m_Buffer;
+                        DisplayEntry displayEntry;
+                        displayEntry.header.length = *(uint*)ptr;
+                        displayEntry.header.hash = *(ulong*)(ptr + 8);
+                        displayEntry.value = *(T*)(ptr + i * m_Buffer.SlotCapacity + 16);
+
+                        items[i] = displayEntry;
+                    }
+                    return items;
+                }
+            }
         }
     }
 }

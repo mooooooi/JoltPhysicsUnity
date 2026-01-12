@@ -25,7 +25,9 @@ namespace Jolt.Collider
         {
             if (!m_Shape.IsCreated)
             {
-                m_Shape = Jolt.SphereShape.Create(Capsule);
+                var scale3 = (float3)transform.localScale;
+                var scale = math.min(scale3.x, scale3.z);
+                m_Shape = Jolt.SphereShape.Create(Capsule * scale);
             }
 
             return m_Shape.AsShape;

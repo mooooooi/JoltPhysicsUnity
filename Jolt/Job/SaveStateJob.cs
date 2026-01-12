@@ -11,6 +11,8 @@ namespace Jolt.Job
         public PhysicsSystem physicsSystem;
         public StateRecorderImpl stateRecorder;
         public StateRecorderFilter stateRecorderFilter;
+
+        public uint frameId;
         public NativeRingBuffer histories;
 
         public void Execute()
@@ -24,8 +26,32 @@ namespace Jolt.Job
             var ptr = stackalloc byte[requiredDataSize];
 
             stateRecorder.ReadBytes(ptr, requiredDataSize);
-            histories.Enqueue(ptr, requiredDataSize);
+            histories.Allocate(frameId, ptr, requiredDataSize);
             stateRecorder.Clear();
+        }
+    }
+
+    [BurstCompile]
+    public unsafe struct SaveAlignedJob : IJob
+    {
+        public uint frameId;
+        public PhysicsSystem physicsSystem;
+        public StateRecorderFilter stateRecorderFilter;
+        public NativeRingBuffer histories;
+        
+        public void Execute()
+        {
+            var builder = physicsSystem.SaveAlignedState(
+                JPH_StateRecorderState.All,
+                stateRecorderFilter.ToUnsafePtr());
+            
+            var requiredDataSize = builder.GetRequiredByteCount();
+            histories.Allocate(frameId, (int)requiredDataSize, out var span);
+            fixed (void* ptr = span)
+            {
+                builder.Flush(ptr, requiredDataSize);
+            }
+            // builder.Destroy();
         }
     }
 }
