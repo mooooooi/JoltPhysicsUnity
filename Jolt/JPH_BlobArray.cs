@@ -8,6 +8,8 @@ namespace Jolt
         private int mOffsetPtr;
         private int mLength;
 
+        public int Length => mLength;
+
         public unsafe T this[int index]
         {
             get
