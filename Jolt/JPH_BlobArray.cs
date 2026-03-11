@@ -1,27 +1,23 @@
 using System;
+using System.Diagnostics;
 using Unity.Collections.LowLevel.Unsafe;
 
 namespace Jolt
 {
     public struct JPH_BlobArray<T> where T : unmanaged
     {
-        private int mOffsetPtr;
-        private int mLength;
+        internal int mOffsetPtr;
+        internal int mLength;
 
         public int Length => mLength;
 
-        public unsafe T this[int index]
+        public unsafe ref T this[int index]
         {
             get
             {
                 CheckRange(index);
-                return *(T*)((byte*)UnsafeUtility.AddressOf(ref mOffsetPtr) + mOffsetPtr);
-            }
-
-            set
-            {
-                CheckRange(index);
-                *(T*)((byte*)UnsafeUtility.AddressOf(ref mOffsetPtr) + mOffsetPtr) = value;
+                var ptr = (T*)((byte*)UnsafeUtility.AddressOf(ref mOffsetPtr) + mOffsetPtr);
+                return ref ptr[index];
             }
         }
 

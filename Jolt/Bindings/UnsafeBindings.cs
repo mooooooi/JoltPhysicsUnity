@@ -2134,9 +2134,6 @@ namespace Jolt
         [NativeTypeName("bool")]
         public byte isActive;
 
-        [NativeTypeName("bool")]
-        public byte isSoft;
-
         [NativeTypeName("JPH_Vec3")]
         public float3 position;
 
