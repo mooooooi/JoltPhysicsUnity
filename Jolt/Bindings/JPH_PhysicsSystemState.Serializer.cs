@@ -16,8 +16,20 @@ namespace Jolt
         void Deserialize(NativeBlobBuilder builder, ref DataStreamReader reader, in StreamCompressionModel model);
     }
     
+    public interface IPackedDeltaSerializable<T>
+    {
+        void Serialize(ref T baseline, ref DataStreamWriter writer, in StreamCompressionModel model);
+        void Deserialize(ref T baseline, NativeBlobBuilder builder, ref DataStreamReader reader, in StreamCompressionModel model);
+    }
+
+    public enum SnapshotDeltaOpCode
+    {
+        Override, Additive
+    }
+    
     public static class SerializerUtility
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void WriteFloat3(ref this DataStreamWriter writer, float3 value)
         {
             writer.WriteFloat(value.x);
@@ -25,6 +37,7 @@ namespace Jolt
             writer.WriteFloat(value.z);
         }
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void WritePackedFloat3(ref this DataStreamWriter writer, float3 value, in StreamCompressionModel model)
         {
             writer.WritePackedFloat(value.x, model);
@@ -32,6 +45,15 @@ namespace Jolt
             writer.WritePackedFloat(value.z, model);
         }
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void WritePackedFloat3Delta(ref this DataStreamWriter writer, float3 value, float3 baseline, in StreamCompressionModel model)
+        {
+            writer.WritePackedFloatDelta(value.x, baseline.x, model);
+            writer.WritePackedFloatDelta(value.y, baseline.y, model);
+            writer.WritePackedFloatDelta(value.z, baseline.z, model);
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float3 ReadFloat3(ref this DataStreamReader reader)
         {
             float3 value;
@@ -42,6 +64,7 @@ namespace Jolt
             return value;
         }
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float3 ReadPackedFloat3(ref this DataStreamReader reader, in StreamCompressionModel model)
         {
             float3 value;
@@ -52,6 +75,18 @@ namespace Jolt
             return value;
         }
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float3 ReadPackedFloat3Delta(ref this DataStreamReader reader, float3 baseline, in StreamCompressionModel model)
+        {
+            float3 value;
+            value.x = reader.ReadPackedFloatDelta(baseline.x, in model);
+            value.y = reader.ReadPackedFloatDelta(baseline.y, in model);
+            value.z = reader.ReadPackedFloatDelta(baseline.z, in model);
+
+            return value;
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void WriteQuat(ref this DataStreamWriter writer, quaternion value)
         {
             writer.WriteFloat(value.value.x);
@@ -60,6 +95,7 @@ namespace Jolt
             writer.WriteFloat(value.value.w);
         }
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void WritePackedQuat(ref this DataStreamWriter writer, quaternion value, in StreamCompressionModel model)
         {
             writer.WritePackedFloat(value.value.x, in model);
@@ -68,6 +104,16 @@ namespace Jolt
             writer.WritePackedFloat(value.value.w, in model);
         }
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void WritePackedQuatDelta(ref this DataStreamWriter writer, quaternion value, quaternion baseline, in StreamCompressionModel model)
+        {
+            writer.WritePackedFloatDelta(value.value.x, baseline.value.x, in model);
+            writer.WritePackedFloatDelta(value.value.y, baseline.value.y, in model);
+            writer.WritePackedFloatDelta(value.value.z, baseline.value.z, in model);
+            writer.WritePackedFloatDelta(value.value.w, baseline.value.w, in model);
+        }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static quaternion ReadQuat(ref this DataStreamReader reader)
         {
             quaternion value;
@@ -79,6 +125,7 @@ namespace Jolt
             return value;
         }
         
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static quaternion ReadPackedQuat(ref this DataStreamReader reader, in StreamCompressionModel model)
         {
             quaternion value;
@@ -89,9 +136,70 @@ namespace Jolt
 
             return value;
         }
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static quaternion ReadPackedQuatDelta(ref this DataStreamReader reader, quaternion baseline, in StreamCompressionModel model)
+        {
+            quaternion value;
+            value.value.x = reader.ReadPackedFloatDelta(baseline.value.x, in model);
+            value.value.y = reader.ReadPackedFloatDelta(baseline.value.y, in model);
+            value.value.z = reader.ReadPackedFloatDelta(baseline.value.z, in model);
+            value.value.w = reader.ReadPackedFloatDelta(baseline.value.w, in model);
+
+            return value;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void WritePackedBlobArrayDelta<T>(
+            ref this DataStreamWriter writer, 
+            ref JPH_BlobArray<T> array, 
+            ref JPH_BlobArray<T> baseline,
+            in StreamCompressionModel model)
+            where T : unmanaged, IPackedDeltaSerializable<T>, IPackedSerializable
+        {
+            writer.WritePackedIntDelta(array.Length, baseline.Length, in model);
+            
+            var minLen = math.min(array.Length, baseline.Length);
+            var i = 0;
+            for (; i < minLen; i++)
+            {
+                array[i].Serialize(ref baseline[i], ref writer, in model);
+            }
+
+            for (; i < array.Length; i++)
+            {
+                array[i].Serialize(ref writer, in model);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ReadPackedBlobArrayDelta<T>(
+            ref this DataStreamReader reader,
+            NativeBlobBuilder builder,
+            ref JPH_BlobArray<T> array,
+            ref JPH_BlobArray<T> baseline,
+            in StreamCompressionModel model)
+            where T : unmanaged, IPackedDeltaSerializable<T>, IPackedSerializable
+        {
+            var len = reader.ReadPackedIntDelta(baseline.Length, in model);
+
+            var blobArraybuilder = builder.Allocate(ref array, len);
+            
+            var minLen = math.min(len, baseline.Length);
+            var i = 0;
+            for (; i < minLen; i++)
+            {
+                blobArraybuilder[i].Deserialize(ref baseline[i], builder, ref reader, in model);
+            }
+
+            for (; i < len; i++)
+            {
+                blobArraybuilder[i].Deserialize(builder, ref reader, in model);
+            }
+        }
     }
     
-    public partial struct JPH_PhysicsSystemState : ISerializable, IPackedSerializable
+    public partial struct JPH_PhysicsSystemState : ISerializable, IPackedSerializable, IPackedDeltaSerializable<JPH_PhysicsSystemState>
     {
         public void Serialize(ref DataStreamWriter writer)
         {
@@ -146,9 +254,30 @@ namespace Jolt
             }
             contacts.Deserialize(builder, ref reader, in model);
         }
+
+        public void Serialize(ref JPH_PhysicsSystemState baseline, ref DataStreamWriter writer, in StreamCompressionModel model)
+        {
+            writer.WriteByte((byte)flags);
+            global.Serialize(ref baseline.global, ref writer, in model);
+
+            writer.WritePackedBlobArrayDelta(ref bodies, ref baseline.bodies, in model);
+            
+            contacts.Serialize(ref baseline.contacts, ref writer, in model);
+        }
+
+        public void Deserialize(ref JPH_PhysicsSystemState baseline, NativeBlobBuilder builder, ref DataStreamReader reader,
+            in StreamCompressionModel model)
+        {
+            flags = (JPH_StateRecorderState)reader.ReadByte();
+            global.Deserialize(ref baseline.global, builder, ref reader, in model);
+
+            reader.ReadPackedBlobArrayDelta(builder, ref bodies, ref baseline.bodies, in model);
+            
+            contacts.Deserialize(ref baseline.contacts, builder, ref reader, in model);
+        }
     }
 
-    public partial struct JPH_GlobalState : ISerializable, IPackedSerializable
+    public partial struct JPH_GlobalState : ISerializable, IPackedSerializable, IPackedDeltaSerializable<JPH_GlobalState>
     {
         public void Serialize(ref DataStreamWriter writer)
         {
@@ -173,9 +302,22 @@ namespace Jolt
             previousStepDeltaTime = reader.ReadPackedFloat(in model);
             gravity = reader.ReadPackedFloat3(in model);
         }
+
+        public void Serialize(ref JPH_GlobalState baseline, ref DataStreamWriter writer, in StreamCompressionModel model)
+        {
+            writer.WritePackedFloatDelta(previousStepDeltaTime, baseline.previousStepDeltaTime, in model);
+            writer.WritePackedFloat3Delta(gravity, baseline.gravity, in model);
+        }
+
+        public void Deserialize(ref JPH_GlobalState baseline, NativeBlobBuilder builder, ref DataStreamReader reader,
+            in StreamCompressionModel model)
+        {
+            previousStepDeltaTime = reader.ReadPackedFloatDelta(baseline.previousStepDeltaTime, in model);
+            gravity = reader.ReadPackedFloat3Delta(baseline.gravity, in model);
+        }
     }
     
-    public partial struct JPH_BodyState : ISerializable, IPackedSerializable
+    public partial struct JPH_BodyState : ISerializable, IPackedSerializable, IPackedDeltaSerializable<JPH_BodyState>
     {
         public void Serialize(ref DataStreamWriter writer)
         {
@@ -228,9 +370,28 @@ namespace Jolt
             
             motionProperties.Deserialize(builder, ref reader, in model);
         }
+
+        public void Serialize(ref JPH_BodyState baseline, ref DataStreamWriter writer, in StreamCompressionModel model)
+        {
+            writer.WritePackedUIntDelta(id, baseline.id, in model);
+            writer.WriteRawBits(isActive, 1);
+            writer.WritePackedFloat3Delta(position, baseline.position, in model);
+            writer.WritePackedQuatDelta(rotation, baseline.rotation, in model);
+            motionProperties.Serialize(ref baseline.motionProperties, ref writer, in model);
+        }
+
+        public void Deserialize(ref JPH_BodyState baseline, NativeBlobBuilder builder, ref DataStreamReader reader,
+            in StreamCompressionModel model)
+        {
+            id = reader.ReadPackedUIntDelta(baseline.id, in model);
+            isActive = (byte)reader.ReadRawBits(1);
+            position = reader.ReadPackedFloat3Delta(baseline.position, in model);
+            rotation = reader.ReadPackedQuatDelta(baseline.rotation, in model);
+            motionProperties.Deserialize(ref baseline.motionProperties, builder, ref reader, in model);
+        }
     }
 
-    public partial struct JPH_MotionPropertiesState : ISerializable, IPackedSerializable
+    public partial struct JPH_MotionPropertiesState : ISerializable, IPackedSerializable, IPackedDeltaSerializable<JPH_MotionPropertiesState>
     {
         public void Serialize(ref DataStreamWriter writer)
         {
@@ -283,9 +444,36 @@ namespace Jolt
             sleepTestTimer = reader.ReadPackedFloat(in model);
             allowSleeping = (byte)reader.ReadRawBits(1);
         }
+
+        public void Serialize(ref JPH_MotionPropertiesState baseline, ref DataStreamWriter writer, in StreamCompressionModel model)
+        {
+            writer.WritePackedFloat3Delta(linearVelocity, baseline.linearVelocity, in model);
+            writer.WritePackedFloat3Delta(angularVelocity, baseline.angularVelocity, in model);
+            writer.WritePackedFloat3Delta(force, baseline.force, in model);
+            writer.WritePackedFloat3Delta(torque, baseline.torque, in model);
+            sleepTestSpheres.e0.Serialize(ref baseline.sleepTestSpheres.e0, ref writer, in model);
+            sleepTestSpheres.e1.Serialize(ref baseline.sleepTestSpheres.e1, ref writer, in model);
+            sleepTestSpheres.e2.Serialize(ref baseline.sleepTestSpheres.e2, ref writer, in model);
+            writer.WritePackedFloatDelta(sleepTestTimer, baseline.sleepTestTimer, in model);
+            writer.WriteRawBits(allowSleeping, 1);
+        }
+
+        public void Deserialize(ref JPH_MotionPropertiesState baseline, NativeBlobBuilder builder, ref DataStreamReader reader,
+            in StreamCompressionModel model)
+        {
+            linearVelocity = reader.ReadPackedFloat3Delta(baseline.linearVelocity, in model);
+            angularVelocity = reader.ReadPackedFloat3Delta(baseline.angularVelocity, in model);
+            force = reader.ReadPackedFloat3Delta(baseline.force, in model);
+            torque = reader.ReadPackedFloat3Delta(baseline.torque, in model);
+            sleepTestSpheres.e0.Deserialize(ref baseline.sleepTestSpheres.e0, builder, ref reader, in model);
+            sleepTestSpheres.e1.Deserialize(ref baseline.sleepTestSpheres.e1, builder, ref reader, in model);
+            sleepTestSpheres.e2.Deserialize(ref baseline.sleepTestSpheres.e2, builder, ref reader, in model);
+            sleepTestTimer = reader.ReadPackedFloatDelta(baseline.sleepTestTimer, in model);
+            allowSleeping = (byte)reader.ReadRawBits(1);
+        }
     }
 
-    public partial struct JPH_Sphere : ISerializable, IPackedSerializable
+    public partial struct JPH_Sphere : ISerializable, IPackedSerializable, IPackedDeltaSerializable<JPH_Sphere>
     {
         public void Serialize(ref DataStreamWriter writer)
         {
@@ -310,9 +498,22 @@ namespace Jolt
             center = reader.ReadPackedFloat3(in model);
             radius = reader.ReadPackedFloat(in model);
         }
+
+        public void Serialize(ref JPH_Sphere baseline, ref DataStreamWriter writer, in StreamCompressionModel model)
+        {
+            writer.WritePackedFloat3Delta(center, baseline.center, in model);
+            writer.WritePackedFloatDelta(radius, baseline.radius, in model);
+        }
+
+        public void Deserialize(ref JPH_Sphere baseline, NativeBlobBuilder builder, ref DataStreamReader reader,
+            in StreamCompressionModel model)
+        {
+            center = reader.ReadPackedFloat3Delta(baseline.center, in model);
+            radius = reader.ReadPackedFloatDelta(baseline.radius, in model);
+        }
     }
 
-    public partial struct JPH_ContactConstraintState : ISerializable, IPackedSerializable
+    public partial struct JPH_ContactConstraintState : ISerializable, IPackedSerializable, IPackedDeltaSerializable<JPH_ContactConstraintState>
     {
         public void Serialize(ref DataStreamWriter writer)
         {
@@ -333,9 +534,20 @@ namespace Jolt
         {
             manifold.Deserialize(builder, ref reader, in model);
         }
+
+        public void Serialize(ref JPH_ContactConstraintState baseline, ref DataStreamWriter writer, in StreamCompressionModel model)
+        {
+            manifold.Serialize(ref baseline.manifold, ref writer, in model);
+        }
+
+        public void Deserialize(ref JPH_ContactConstraintState baseline, NativeBlobBuilder builder, ref DataStreamReader reader,
+            in StreamCompressionModel model)
+        {
+            manifold.Deserialize(ref baseline.manifold, builder, ref reader, in model);
+        }
     }
 
-    public partial struct JPH_ManifoldCacheState : ISerializable, IPackedSerializable
+    public partial struct JPH_ManifoldCacheState : ISerializable, IPackedSerializable, IPackedDeltaSerializable<JPH_ManifoldCacheState>
     {
         public void Serialize(ref DataStreamWriter writer)
         {
@@ -404,9 +616,22 @@ namespace Jolt
                 ccdArrayBuilder[i].Deserialize(builder, ref reader, in model);
             }
         }
+
+        public void Serialize(ref JPH_ManifoldCacheState baseline, ref DataStreamWriter writer, in StreamCompressionModel model)
+        {
+            writer.WritePackedBlobArrayDelta(ref bodyPairs, ref baseline.bodyPairs, in model);
+            writer.WritePackedBlobArrayDelta(ref ccdManifolds, ref baseline.ccdManifolds, in model);
+        }
+
+        public void Deserialize(ref JPH_ManifoldCacheState baseline, NativeBlobBuilder builder, ref DataStreamReader reader,
+            in StreamCompressionModel model)
+        {
+            reader.ReadPackedBlobArrayDelta(builder, ref bodyPairs, ref baseline.bodyPairs, in model);
+            reader.ReadPackedBlobArrayDelta(builder, ref ccdManifolds, ref baseline.ccdManifolds, in model);
+        }
     }
     
-    public partial struct JPH_BodyPairKeyValueState : ISerializable, IPackedSerializable
+    public partial struct JPH_BodyPairKeyValueState : ISerializable, IPackedSerializable, IPackedDeltaSerializable<JPH_BodyPairKeyValueState>
     {
         public void Serialize(ref DataStreamWriter writer)
         {
@@ -432,9 +657,22 @@ namespace Jolt
             key.BodyA = reader.ReadPackedUInt(in model);
             key.BodyB = reader.ReadPackedUInt(in model);
         }
+
+        public void Serialize(ref JPH_BodyPairKeyValueState baseline, ref DataStreamWriter writer, in StreamCompressionModel model)
+        {
+            writer.WritePackedUIntDelta(key.BodyA, baseline.key.BodyA, in model);
+            writer.WritePackedUIntDelta(key.BodyB, baseline.key.BodyB, in model);
+        }
+
+        public void Deserialize(ref JPH_BodyPairKeyValueState baseline, NativeBlobBuilder builder, ref DataStreamReader reader,
+            in StreamCompressionModel model)
+        {
+            key.BodyA = reader.ReadPackedUIntDelta(baseline.key.BodyA, in model);
+            key.BodyB = reader.ReadPackedUIntDelta(baseline.key.BodyB, in model);
+        }
     }
 
-    public partial struct JPH_CachedBodyPairState : ISerializable, IPackedSerializable
+    public partial struct JPH_CachedBodyPairState : ISerializable, IPackedSerializable, IPackedDeltaSerializable<JPH_CachedBodyPairState>
     {
         public void Serialize(ref DataStreamWriter writer)
         {
@@ -487,9 +725,36 @@ namespace Jolt
                 manifoldArrayBuilder[i].Deserialize(builder, ref reader, in model);
             }
         }
+
+        public void Serialize(ref JPH_CachedBodyPairState baseline, ref DataStreamWriter writer, in StreamCompressionModel model)
+        {
+            writer.WritePackedFloat3Delta(deltaPosition, baseline.deltaPosition, in model);
+            writer.WritePackedFloat3Delta(deltaRotation, baseline.deltaRotation, in model);
+
+            var manifoldLength = (byte)manifolds.Length;
+            writer.WriteByte(manifoldLength);
+            for (var i = 0; i < manifoldLength; i++)
+            {
+                manifolds[i].Serialize(ref writer, in model);
+            }
+        }
+
+        public void Deserialize(ref JPH_CachedBodyPairState baseline, NativeBlobBuilder builder, ref DataStreamReader reader,
+            in StreamCompressionModel model)
+        {
+            deltaPosition = reader.ReadPackedFloat3(in model);
+            deltaRotation = reader.ReadPackedFloat3(in model);
+
+            var manifoldLength = reader.ReadByte();
+            var manifoldArrayBuilder = builder.Allocate(ref manifolds, manifoldLength);
+            for (var i = 0; i < manifoldLength; i++)
+            {
+                manifoldArrayBuilder[i].Deserialize(builder, ref reader, in model);
+            }
+        }
     }
 
-    public partial struct JPH_ManifoldKeyValueState : ISerializable, IPackedSerializable
+    public partial struct JPH_ManifoldKeyValueState : ISerializable, IPackedSerializable, IPackedDeltaSerializable<JPH_ManifoldKeyValueState>
     {
         public void Serialize(ref DataStreamWriter writer)
         {
@@ -514,9 +779,22 @@ namespace Jolt
             key.Deserialize(builder, ref reader, in model);
             value.Deserialize(builder, ref reader, in model);
         }
+
+        public void Serialize(ref JPH_ManifoldKeyValueState baseline, ref DataStreamWriter writer, in StreamCompressionModel model)
+        {
+            key.Serialize(ref baseline.key, ref writer, in model);
+            value.Serialize(ref baseline.value, ref writer, in model);
+        }
+
+        public void Deserialize(ref JPH_ManifoldKeyValueState baseline, NativeBlobBuilder builder, ref DataStreamReader reader,
+            in StreamCompressionModel model)
+        {
+            key.Deserialize(ref baseline.key, builder, ref reader, in model);
+            value.Deserialize(ref baseline.value, builder, ref reader, in model);
+        }
     }
 
-    public partial struct JPH_SubShapeIDPair : ISerializable, IPackedSerializable
+    public partial struct JPH_SubShapeIDPair : ISerializable, IPackedSerializable, IPackedDeltaSerializable<JPH_SubShapeIDPair>
     {
         public void Serialize(ref DataStreamWriter writer)
         {
@@ -549,9 +827,26 @@ namespace Jolt
             Body2ID = reader.ReadPackedUInt(in model);
             subShapeID2 = reader.ReadPackedUInt(in model);
         }
+
+        public void Serialize(ref JPH_SubShapeIDPair baseline, ref DataStreamWriter writer, in StreamCompressionModel model)
+        {
+            writer.WritePackedUIntDelta(Body1ID, baseline.Body1ID, in model);
+            writer.WritePackedUIntDelta(subShapeID1, baseline.subShapeID1, in model);
+            writer.WritePackedUIntDelta(Body2ID, baseline.Body2ID, in model);
+            writer.WritePackedUIntDelta(subShapeID2, baseline.subShapeID2, in model);
+        }
+
+        public void Deserialize(ref JPH_SubShapeIDPair baseline, NativeBlobBuilder builder, ref DataStreamReader reader,
+            in StreamCompressionModel model)
+        {
+            Body1ID = reader.ReadPackedUIntDelta(baseline.Body1ID, in model);
+            subShapeID1 = reader.ReadPackedUIntDelta(baseline.subShapeID1, in model);
+            Body2ID = reader.ReadPackedUIntDelta(baseline.Body2ID, in model);
+            subShapeID2 = reader.ReadPackedUIntDelta(baseline.subShapeID2, in model);
+        }
     }
 
-    public partial struct JPH_CachedManifoldState : ISerializable, IPackedSerializable
+    public partial struct JPH_CachedManifoldState : ISerializable, IPackedSerializable, IPackedDeltaSerializable<JPH_CachedManifoldState>
     {
         public void Serialize(ref DataStreamWriter writer)
         {
@@ -600,9 +895,22 @@ namespace Jolt
                 contactPointArrayBuilder[i].Deserialize(builder, ref reader, in model);
             }
         }
+
+        public void Serialize(ref JPH_CachedManifoldState baseline, ref DataStreamWriter writer, in StreamCompressionModel model)
+        {
+            writer.WritePackedFloat3Delta(contactNormal, baseline.contactNormal, in model);
+            writer.WritePackedBlobArrayDelta(ref contactPoints, ref baseline.contactPoints, in model);
+        }
+
+        public void Deserialize(ref JPH_CachedManifoldState baseline, NativeBlobBuilder builder, ref DataStreamReader reader,
+            in StreamCompressionModel model)
+        {
+            contactNormal = reader.ReadPackedFloat3Delta(baseline.contactNormal, in model);
+            reader.ReadPackedBlobArrayDelta(builder, ref contactPoints, ref baseline.contactPoints, in model);
+        }
     }
 
-    public partial struct JPH_CachedContactPointState : ISerializable, IPackedSerializable
+    public partial struct JPH_CachedContactPointState : ISerializable, IPackedSerializable, IPackedDeltaSerializable<JPH_CachedContactPointState>
     {
         public unsafe void Serialize(ref DataStreamWriter writer)
         {
@@ -638,6 +946,25 @@ namespace Jolt
             nonPenetrationLambda = reader.ReadPackedFloat(in model);
             frictionLambda[0] =  reader.ReadPackedFloat(in model);
             frictionLambda[1] =  reader.ReadPackedFloat(in model);
+        }
+
+        public unsafe void Serialize(ref JPH_CachedContactPointState baseline, ref DataStreamWriter writer, in StreamCompressionModel model)
+        {
+            writer.WritePackedFloat3Delta(position1, baseline.position1, in model);
+            writer.WritePackedFloat3Delta(position2, baseline.position2, in model);
+            writer.WritePackedFloatDelta(nonPenetrationLambda, baseline.nonPenetrationLambda, in model);
+            writer.WritePackedFloatDelta(frictionLambda[0], baseline.frictionLambda[0], in model);
+            writer.WritePackedFloatDelta(frictionLambda[1], baseline.frictionLambda[1], in model);
+        }
+
+        public unsafe void Deserialize(ref JPH_CachedContactPointState baseline, NativeBlobBuilder builder, ref DataStreamReader reader,
+            in StreamCompressionModel model)
+        {
+            position1 = reader.ReadPackedFloat3Delta(baseline.position1, in model);
+            position2 = reader.ReadPackedFloat3Delta(baseline.position2, in model);
+            nonPenetrationLambda = reader.ReadPackedFloatDelta(baseline.nonPenetrationLambda, in model);
+            frictionLambda[0] =  reader.ReadPackedFloatDelta(baseline.frictionLambda[0], in model);
+            frictionLambda[1] =  reader.ReadPackedFloatDelta(baseline.frictionLambda[1], in model);
         }
     }
 }
