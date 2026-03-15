@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Unity.Collections;
 using Unity.Mathematics;
 
@@ -21,14 +22,21 @@ namespace Jolt
         void Serialize(ref T baseline, ref DataStreamWriter writer, in StreamCompressionModel model);
         void Deserialize(ref T baseline, NativeBlobBuilder builder, ref DataStreamReader reader, in StreamCompressionModel model);
     }
-
-    public enum SnapshotDeltaOpCode
-    {
-        Override, Additive
-    }
     
     public static class SerializerUtility
     {
+        [StructLayout(LayoutKind.Explicit)]
+        internal struct UIntFloat
+        {
+            [FieldOffset(0)] public float floatValue;
+
+            [FieldOffset(0)] public uint intValue;
+
+            [FieldOffset(0)] public double doubleValue;
+
+            [FieldOffset(0)] public ulong longValue;
+        }
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void WriteFloat3(ref this DataStreamWriter writer, float3 value)
         {
@@ -51,6 +59,10 @@ namespace Jolt
             writer.WritePackedFloatDelta(value.x, baseline.x, model);
             writer.WritePackedFloatDelta(value.y, baseline.y, model);
             writer.WritePackedFloatDelta(value.z, baseline.z, model);
+            
+            // writer.WriteFloatDeltaXOR(value.x, baseline.x);
+            // writer.WriteFloatDeltaXOR(value.y, baseline.y);
+            // writer.WriteFloatDeltaXOR(value.z, baseline.z);
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -82,6 +94,10 @@ namespace Jolt
             value.x = reader.ReadPackedFloatDelta(baseline.x, in model);
             value.y = reader.ReadPackedFloatDelta(baseline.y, in model);
             value.z = reader.ReadPackedFloatDelta(baseline.z, in model);
+            
+            // value.x = reader.ReadFloatDeltaXOR(baseline.x);
+            // value.y = reader.ReadFloatDeltaXOR(baseline.y);
+            // value.z = reader.ReadFloatDeltaXOR(baseline.z);
 
             return value;
         }
@@ -111,6 +127,11 @@ namespace Jolt
             writer.WritePackedFloatDelta(value.value.y, baseline.value.y, in model);
             writer.WritePackedFloatDelta(value.value.z, baseline.value.z, in model);
             writer.WritePackedFloatDelta(value.value.w, baseline.value.w, in model);
+            
+            // writer.WriteFloatDeltaXOR(value.value.x, baseline.value.x);
+            // writer.WriteFloatDeltaXOR(value.value.y, baseline.value.y);
+            // writer.WriteFloatDeltaXOR(value.value.z, baseline.value.z);
+            // writer.WriteFloatDeltaXOR(value.value.w, baseline.value.w);
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -145,6 +166,11 @@ namespace Jolt
             value.value.y = reader.ReadPackedFloatDelta(baseline.value.y, in model);
             value.value.z = reader.ReadPackedFloatDelta(baseline.value.z, in model);
             value.value.w = reader.ReadPackedFloatDelta(baseline.value.w, in model);
+            
+            // value.value.x = reader.ReadFloatDeltaXOR(baseline.value.x);
+            // value.value.y = reader.ReadFloatDeltaXOR(baseline.value.y);
+            // value.value.z = reader.ReadFloatDeltaXOR(baseline.value.z);
+            // value.value.w = reader.ReadFloatDeltaXOR(baseline.value.w);
 
             return value;
         }
@@ -196,6 +222,63 @@ namespace Jolt
             {
                 blobArraybuilder[i].Deserialize(builder, ref reader, in model);
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void WriteFloatDeltaXOR(ref this DataStreamWriter writer, float value, float baseline)
+        {
+            var p = new UIntFloat { floatValue = baseline }.intValue;
+            var c = new UIntFloat { floatValue = value }.intValue;
+
+            if (p == c)
+            {
+                writer.WriteRawBits(0b00, 2);
+                return;
+            }
+
+            var expPrev = (p >> 23) & 0xFF;
+            var expNext = (c >> 23) & 0xFF;
+
+            if (expPrev == expNext)
+            {
+                var prev = p & 0x7FFFFF;
+                var cur = c & 0x7FFFFF;
+                var delta = (int)cur - (int)prev;
+                var zz = (uint)((delta << 1) ^ (delta >> 31));
+                var bits = zz == 0 ? 0 : 32 - math.lzcnt(zz);
+                writer.WriteRawBits(0b01, 2);
+                writer.WriteRawBits((uint)bits, 5);
+                writer.WriteRawBits(zz, bits);
+            }
+            else
+            {
+                writer.WriteRawBits(0b10, 2);
+                writer.WriteFloat(value);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float ReadFloatDeltaXOR(ref this DataStreamReader reader, float baseline)
+        {
+            var flag = reader.ReadRawBits(2);
+            if (flag == 0x00) return baseline;
+
+            var p = new UIntFloat { floatValue = baseline }.intValue;
+            if (flag == 0x01)
+            {
+                var bits = reader.ReadRawBits(5);
+                var zz = reader.ReadRawBits((int)bits);
+                var delta = (int)((zz >> 1) ^ -(zz & 1));
+                var exp = (int)((p >> 23) & 0xFF);
+                var mant = (int)(p & 0x7FFFFF);
+                mant += delta;
+
+                var cur = (p & 0xFF800000) | ((uint)mant & 0x7FFFFF);
+                
+                return new UIntFloat { intValue = cur }.floatValue;
+            }
+
+            return reader.ReadFloat();
         }
     }
     
