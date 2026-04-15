@@ -14,12 +14,36 @@ namespace Jolt
 
             var props = new JPH_StateRecorderFilter_Procs()
             {
+                ShouldSaveBody = Marshal.GetFunctionPointerForDelegate<ShouldSaveBodyDel>(ShouldSaveBody),
+                ShouldSaveConstraint = Marshal.GetFunctionPointerForDelegate<ShouldSaveConstraintDel>(ShouldSaveConstraint),
                 ShouldSaveContact = Marshal.GetFunctionPointerForDelegate<ShouldSaveContactDel>(ShouldSaveContact), 
                 ShouldRestoreContact = Marshal.GetFunctionPointerForDelegate<ShouldRestoreContactDel>(ShouldRestoreContact)
             };
             Handle = GCHandle.Alloc(props, GCHandleType.Pinned);
             
             UnsafeBindings.JPH_StateRecorderFilter_SetProcs((JPH_StateRecorderFilter_Procs*)Handle.AddrOfPinnedObject());
+        }
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private unsafe delegate bool ShouldSaveBodyDel(void* userData, JPH_Body* body);
+        [AOT.MonoPInvokeCallback(typeof(ShouldSaveBodyDel))]
+        private static unsafe bool ShouldSaveBody(void* userData, JPH_Body* body)
+        {
+            if (body == null)
+                return false;
+
+            if (UnsafeBindings.JPH_Body_IsStatic(body) != 0)
+                return false;
+
+            return UnsafeBindings.JPH_Body_GetObjectLayer(body) != 0;
+        }
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private unsafe delegate bool ShouldSaveConstraintDel(void* userData, JPH_Constraint* constraint);
+        [AOT.MonoPInvokeCallback(typeof(ShouldSaveConstraintDel))]
+        private static unsafe bool ShouldSaveConstraint(void* userData, JPH_Constraint* constraint)
+        {
+            return true;
         }
         
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]

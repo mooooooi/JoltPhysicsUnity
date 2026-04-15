@@ -634,15 +634,15 @@ namespace Jolt
     {
         public void Serialize(ref DataStreamWriter writer)
         {
-            var bodyLength = (byte)bodyPairs.Length;
-            writer.WriteByte(bodyLength);
+            var bodyLength = bodyPairs.Length;
+            writer.WriteInt(bodyLength);
             for (var i = 0; i < bodyLength; i++)
             {
                 bodyPairs[i].Serialize(ref writer);
             }
 
-            var ccdLength = (byte)ccdManifolds.Length;
-            writer.WriteByte(ccdLength);
+            var ccdLength = ccdManifolds.Length;
+            writer.WriteInt(ccdLength);
             for (var i = 0; i < ccdLength; i++)
             {
                 ccdManifolds[i].Serialize(ref writer);
@@ -651,14 +651,14 @@ namespace Jolt
 
         public void Deserialize(NativeBlobBuilder builder, ref DataStreamReader reader)
         {
-            var bodyLength = reader.ReadByte();
+            var bodyLength = reader.ReadInt();
             var bodyPairArrayBuilder = builder.Allocate(ref bodyPairs, bodyLength);
             for (var i = 0; i < bodyLength; i++)
             {
                 bodyPairArrayBuilder[i].Deserialize(builder, ref reader);
             }
 
-            var ccdLength = reader.ReadByte();
+            var ccdLength = reader.ReadInt();
             var ccdArrayBuilder = builder.Allocate(ref ccdManifolds, ccdLength);
             for (var i = 0; i < ccdLength; i++)
             {
@@ -668,15 +668,15 @@ namespace Jolt
 
         public void Serialize(ref DataStreamWriter writer, in StreamCompressionModel model)
         {
-            var bodyLength = (byte)bodyPairs.Length;
-            writer.WriteByte(bodyLength);
+            var bodyLength = bodyPairs.Length;
+            writer.WriteInt(bodyLength);
             for (var i = 0; i < bodyLength; i++)
             {
                 bodyPairs[i].Serialize(ref writer, in model);
             }
 
-            var ccdLength = (byte)ccdManifolds.Length;
-            writer.WriteByte(ccdLength);
+            var ccdLength = ccdManifolds.Length;
+            writer.WriteInt(ccdLength);
             for (var i = 0; i < ccdLength; i++)
             {
                 ccdManifolds[i].Serialize(ref writer, in model);
@@ -685,14 +685,14 @@ namespace Jolt
 
         public void Deserialize(NativeBlobBuilder builder, ref DataStreamReader reader, in StreamCompressionModel model)
         {
-            var bodyLength = reader.ReadByte();
+            var bodyLength = reader.ReadInt();
             var bodyPairArrayBuilder = builder.Allocate(ref bodyPairs, bodyLength);
             for (var i = 0; i < bodyLength; i++)
             {
                 bodyPairArrayBuilder[i].Deserialize(builder, ref reader, in model);
             }
 
-            var ccdLength = reader.ReadByte();
+            var ccdLength = reader.ReadInt();
             var ccdArrayBuilder = builder.Allocate(ref ccdManifolds, ccdLength);
             for (var i = 0; i < ccdLength; i++)
             {
@@ -1048,6 +1048,325 @@ namespace Jolt
             nonPenetrationLambda = reader.ReadPackedFloatDelta(baseline.nonPenetrationLambda, in model);
             frictionLambda[0] =  reader.ReadPackedFloatDelta(baseline.frictionLambda[0], in model);
             frictionLambda[1] =  reader.ReadPackedFloatDelta(baseline.frictionLambda[1], in model);
+        }
+    }
+
+    public partial struct JPH_CharacterBaseState : ISerializable, IPackedSerializable,
+        IPackedDeltaSerializable<JPH_CharacterBaseState>
+    {
+        public void Serialize(ref DataStreamWriter writer)
+        {
+            writer.WriteUInt((uint)groundState);
+            writer.WriteUInt(groundBodyID);
+            writer.WriteUInt(groundBodySubShapeID);
+            writer.WriteFloat3(groundPosition);
+            writer.WriteFloat3(groundNormal);
+            writer.WriteFloat3(groundVelocity);
+        }
+
+        public void Deserialize(NativeBlobBuilder builder, ref DataStreamReader reader)
+        {
+            groundState = (JPH_GroundState)reader.ReadUInt();
+            groundBodyID = reader.ReadUInt();
+            groundBodySubShapeID = reader.ReadUInt();
+            groundPosition = reader.ReadFloat3();
+            groundNormal = reader.ReadFloat3();
+            groundVelocity = reader.ReadFloat3();
+        }
+
+        public void Serialize(ref DataStreamWriter writer, in StreamCompressionModel model)
+        {
+            writer.WritePackedUInt((uint)groundState, in model);
+            writer.WritePackedUInt(groundBodyID, in model);
+            writer.WritePackedUInt(groundBodySubShapeID, in model);
+            writer.WritePackedFloat3(groundPosition, in model);
+            writer.WritePackedFloat3(groundNormal, in model);
+            writer.WritePackedFloat3(groundVelocity, in model);
+        }
+
+        public void Deserialize(NativeBlobBuilder builder, ref DataStreamReader reader, in StreamCompressionModel model)
+        {
+            groundState = (JPH_GroundState)reader.ReadPackedUInt(in model);
+            groundBodyID = reader.ReadPackedUInt(in model);
+            groundBodySubShapeID = reader.ReadPackedUInt(in model);
+            groundPosition = reader.ReadPackedFloat3(in model);
+            groundNormal = reader.ReadPackedFloat3(in model);
+            groundVelocity = reader.ReadPackedFloat3(in model);
+        }
+
+        public void Serialize(ref JPH_CharacterBaseState baseline, ref DataStreamWriter writer, in StreamCompressionModel model)
+        {
+            writer.WritePackedUIntDelta((uint)groundState, (uint)baseline.groundState, in model);
+            writer.WritePackedUIntDelta(groundBodyID, baseline.groundBodyID, in model);
+            writer.WritePackedUIntDelta(groundBodySubShapeID, baseline.groundBodySubShapeID, in model);
+            writer.WritePackedFloat3Delta(groundPosition, baseline.groundPosition, in model);
+            writer.WritePackedFloat3Delta(groundNormal, baseline.groundNormal, in model);
+            writer.WritePackedFloat3Delta(groundVelocity, baseline.groundVelocity, in model);
+        }
+
+        public void Deserialize(ref JPH_CharacterBaseState baseline, NativeBlobBuilder builder, ref DataStreamReader reader,
+            in StreamCompressionModel model)
+        {
+            groundState = (JPH_GroundState)reader.ReadPackedUIntDelta((uint)baseline.groundState, in model);
+            groundBodyID = reader.ReadPackedUIntDelta(baseline.groundBodyID, in model);
+            groundBodySubShapeID = reader.ReadPackedUIntDelta(baseline.groundBodySubShapeID, in model);
+            groundPosition = reader.ReadPackedFloat3Delta(baseline.groundPosition, in model);
+            groundNormal = reader.ReadPackedFloat3Delta(baseline.groundNormal, in model);
+            groundVelocity = reader.ReadPackedFloat3Delta(baseline.groundVelocity, in model);
+        }
+    }
+
+    public partial struct JPH_CharacterVirtualContactKeyState : ISerializable, IPackedSerializable,
+        IPackedDeltaSerializable<JPH_CharacterVirtualContactKeyState>
+    {
+        public void Serialize(ref DataStreamWriter writer)
+        {
+            writer.WriteUInt(bodyB);
+            writer.WriteUInt(characterIDB);
+            writer.WriteUInt(subShapeIDB);
+        }
+
+        public void Deserialize(NativeBlobBuilder builder, ref DataStreamReader reader)
+        {
+            bodyB = reader.ReadUInt();
+            characterIDB = reader.ReadUInt();
+            subShapeIDB = reader.ReadUInt();
+        }
+
+        public void Serialize(ref DataStreamWriter writer, in StreamCompressionModel model)
+        {
+            writer.WritePackedUInt(bodyB, in model);
+            writer.WritePackedUInt(characterIDB, in model);
+            writer.WritePackedUInt(subShapeIDB, in model);
+        }
+
+        public void Deserialize(NativeBlobBuilder builder, ref DataStreamReader reader, in StreamCompressionModel model)
+        {
+            bodyB = reader.ReadPackedUInt(in model);
+            characterIDB = reader.ReadPackedUInt(in model);
+            subShapeIDB = reader.ReadPackedUInt(in model);
+        }
+
+        public void Serialize(ref JPH_CharacterVirtualContactKeyState baseline, ref DataStreamWriter writer, in StreamCompressionModel model)
+        {
+            writer.WritePackedUIntDelta(bodyB, baseline.bodyB, in model);
+            writer.WritePackedUIntDelta(characterIDB, baseline.characterIDB, in model);
+            writer.WritePackedUIntDelta(subShapeIDB, baseline.subShapeIDB, in model);
+        }
+
+        public void Deserialize(ref JPH_CharacterVirtualContactKeyState baseline, NativeBlobBuilder builder, ref DataStreamReader reader,
+            in StreamCompressionModel model)
+        {
+            bodyB = reader.ReadPackedUIntDelta(baseline.bodyB, in model);
+            characterIDB = reader.ReadPackedUIntDelta(baseline.characterIDB, in model);
+            subShapeIDB = reader.ReadPackedUIntDelta(baseline.subShapeIDB, in model);
+        }
+    }
+
+    public partial struct JPH_CharacterVirtualContactState : ISerializable, IPackedSerializable,
+        IPackedDeltaSerializable<JPH_CharacterVirtualContactState>
+    {
+        public void Serialize(ref DataStreamWriter writer)
+        {
+            key.Serialize(ref writer);
+            writer.WriteFloat3(position);
+            writer.WriteFloat3(linearVelocity);
+            writer.WriteFloat3(contactNormal);
+            writer.WriteFloat3(surfaceNormal);
+            writer.WriteFloat(distance);
+            writer.WriteFloat(fraction);
+            writer.WriteByte((byte)motionTypeB);
+            var bits = 0u;
+            if (isSensorB > 0) bits |= 1 << 0;
+            if (hadCollision > 0) bits |= 1 << 1;
+            if (wasDiscarded > 0) bits |= 1 << 2;
+            if (canPushCharacter > 0) bits |= 1 << 3;
+            writer.WriteRawBits(bits, 4);
+        }
+
+        public void Deserialize(NativeBlobBuilder builder, ref DataStreamReader reader)
+        {
+            key.Deserialize(builder, ref reader);
+            position = reader.ReadFloat3();
+            linearVelocity = reader.ReadFloat3();
+            contactNormal = reader.ReadFloat3();
+            surfaceNormal = reader.ReadFloat3();
+            distance = reader.ReadFloat();
+            fraction = reader.ReadFloat();
+            motionTypeB = (JPH_MotionType)reader.ReadByte();
+            var bits = reader.ReadRawBits(4);
+            isSensorB = (bits & (1 << 0)) != 0 ? (byte)1 : (byte)0;
+            hadCollision = (bits & (1 << 1)) != 0 ? (byte)1 : (byte)0;
+            wasDiscarded = (bits & (1 << 2)) != 0 ? (byte)1 : (byte)0;
+            canPushCharacter = (bits & (1 << 3)) != 0 ? (byte)1 : (byte)0;
+        }
+
+        public void Serialize(ref DataStreamWriter writer, in StreamCompressionModel model)
+        {
+            key.Serialize(ref writer, in model);
+            writer.WritePackedFloat3(position, in model);
+            writer.WritePackedFloat3(linearVelocity, in model);
+            writer.WritePackedFloat3(contactNormal, in model);
+            writer.WritePackedFloat3(surfaceNormal, in model);
+            writer.WritePackedFloat(distance, in model);
+            writer.WritePackedFloat(fraction, in model);
+            writer.WriteByte((byte)motionTypeB);
+            var bits = 0u;
+            if (isSensorB > 0) bits |= 1 << 0;
+            if (hadCollision > 0) bits |= 1 << 1;
+            if (wasDiscarded > 0) bits |= 1 << 2;
+            if (canPushCharacter > 0) bits |= 1 << 3;
+            writer.WriteRawBits(bits, 4);
+        }
+
+        public void Deserialize(NativeBlobBuilder builder, ref DataStreamReader reader, in StreamCompressionModel model)
+        {
+            key.Deserialize(builder, ref reader, in model);
+            position = reader.ReadPackedFloat3(in model);
+            linearVelocity = reader.ReadPackedFloat3(in model);
+            contactNormal = reader.ReadPackedFloat3(in model);
+            surfaceNormal = reader.ReadPackedFloat3(in model);
+            distance = reader.ReadPackedFloat(in model);
+            fraction = reader.ReadPackedFloat(in model);
+            motionTypeB = (JPH_MotionType)reader.ReadByte();
+            var bits = reader.ReadRawBits(4);
+            isSensorB = (bits & (1 << 0)) != 0 ? (byte)1 : (byte)0;
+            hadCollision = (bits & (1 << 1)) != 0 ? (byte)1 : (byte)0;
+            wasDiscarded = (bits & (1 << 2)) != 0 ? (byte)1 : (byte)0;
+            canPushCharacter = (bits & (1 << 3)) != 0 ? (byte)1 : (byte)0;
+        }
+
+        public void Serialize(ref JPH_CharacterVirtualContactState baseline, ref DataStreamWriter writer, in StreamCompressionModel model)
+        {
+            key.Serialize(ref baseline.key, ref writer, in model);
+            writer.WritePackedFloat3Delta(position, baseline.position, in model);
+            writer.WritePackedFloat3Delta(linearVelocity, baseline.linearVelocity, in model);
+            writer.WritePackedFloat3Delta(contactNormal, baseline.contactNormal, in model);
+            writer.WritePackedFloat3Delta(surfaceNormal, baseline.surfaceNormal, in model);
+            writer.WritePackedFloatDelta(distance, baseline.distance, in model);
+            writer.WritePackedFloatDelta(fraction, baseline.fraction, in model);
+            writer.WriteByte((byte)motionTypeB);
+            var bits = 0u;
+            if (isSensorB > 0) bits |= 1 << 0;
+            if (hadCollision > 0) bits |= 1 << 1;
+            if (wasDiscarded > 0) bits |= 1 << 2;
+            if (canPushCharacter > 0) bits |= 1 << 3;
+            writer.WriteRawBits(bits, 4);
+        }
+
+        public void Deserialize(ref JPH_CharacterVirtualContactState baseline, NativeBlobBuilder builder, ref DataStreamReader reader,
+            in StreamCompressionModel model)
+        {
+            key.Deserialize(ref baseline.key, builder, ref reader, in model);
+            position = reader.ReadPackedFloat3Delta(baseline.position, in model);
+            linearVelocity = reader.ReadPackedFloat3Delta(baseline.linearVelocity, in model);
+            contactNormal = reader.ReadPackedFloat3Delta(baseline.contactNormal, in model);
+            surfaceNormal = reader.ReadPackedFloat3Delta(baseline.surfaceNormal, in model);
+            distance = reader.ReadPackedFloatDelta(baseline.distance, in model);
+            fraction = reader.ReadPackedFloatDelta(baseline.fraction, in model);
+            motionTypeB = (JPH_MotionType)reader.ReadByte();
+            var bits = reader.ReadRawBits(4);
+            isSensorB = (bits & (1 << 0)) != 0 ? (byte)1 : (byte)0;
+            hadCollision = (bits & (1 << 1)) != 0 ? (byte)1 : (byte)0;
+            wasDiscarded = (bits & (1 << 2)) != 0 ? (byte)1 : (byte)0;
+            canPushCharacter = (bits & (1 << 3)) != 0 ? (byte)1 : (byte)0;
+        }
+    }
+
+    public partial struct JPH_CharacterVirtualState : ISerializable, IPackedSerializable,
+        IPackedDeltaSerializable<JPH_CharacterVirtualState>
+    {
+        public void Serialize(ref DataStreamWriter writer)
+        {
+            @base.Serialize(ref writer);
+            writer.WriteFloat3(position);
+            writer.WriteQuat(rotation);
+            writer.WriteFloat3(linearVelocity);
+            writer.WriteFloat(lastDeltaTime);
+            writer.WriteRawBits(maxHitsExceeded, 1);
+
+            var contactLength = (byte)contacts.Length;
+            writer.WriteByte(contactLength);
+            for (var i = 0; i < contactLength; i++)
+            {
+                contacts[i].Serialize(ref writer);
+            }
+        }
+
+        public void Deserialize(NativeBlobBuilder builder, ref DataStreamReader reader)
+        {
+            @base.Deserialize(builder, ref reader);
+            position = reader.ReadFloat3();
+            rotation = reader.ReadQuat();
+            linearVelocity = reader.ReadFloat3();
+            lastDeltaTime = reader.ReadFloat();
+            maxHitsExceeded = (byte)reader.ReadRawBits(1);
+
+            var contactLength = reader.ReadByte();
+            var contactArrayBuilder = builder.Allocate(ref contacts, contactLength);
+            for (var i = 0; i < contactLength; i++)
+            {
+                contactArrayBuilder[i].Deserialize(builder, ref reader);
+            }
+        }
+
+        public void Serialize(ref DataStreamWriter writer, in StreamCompressionModel model)
+        {
+            @base.Serialize(ref writer, in model);
+            writer.WritePackedFloat3(position, in model);
+            writer.WritePackedQuat(rotation, in model);
+            writer.WritePackedFloat3(linearVelocity, in model);
+            writer.WritePackedFloat(lastDeltaTime, in model);
+            writer.WriteRawBits(maxHitsExceeded, 1);
+
+            var contactLength = (byte)contacts.Length;
+            writer.WriteByte(contactLength);
+            for (var i = 0; i < contactLength; i++)
+            {
+                contacts[i].Serialize(ref writer, in model);
+            }
+        }
+
+        public void Deserialize(NativeBlobBuilder builder, ref DataStreamReader reader, in StreamCompressionModel model)
+        {
+            @base.Deserialize(builder, ref reader, in model);
+            position = reader.ReadPackedFloat3(in model);
+            rotation = reader.ReadPackedQuat(in model);
+            linearVelocity = reader.ReadPackedFloat3(in model);
+            lastDeltaTime = reader.ReadPackedFloat(in model);
+            maxHitsExceeded = (byte)reader.ReadRawBits(1);
+
+            var contactLength = reader.ReadByte();
+            var contactArrayBuilder = builder.Allocate(ref contacts, contactLength);
+            for (var i = 0; i < contactLength; i++)
+            {
+                contactArrayBuilder[i].Deserialize(builder, ref reader, in model);
+            }
+        }
+
+        public void Serialize(ref JPH_CharacterVirtualState baseline, ref DataStreamWriter writer, in StreamCompressionModel model)
+        {
+            @base.Serialize(ref baseline.@base, ref writer, in model);
+            writer.WritePackedFloat3Delta(position, baseline.position, in model);
+            writer.WritePackedQuatDelta(rotation, baseline.rotation, in model);
+            writer.WritePackedFloat3Delta(linearVelocity, baseline.linearVelocity, in model);
+            writer.WritePackedFloatDelta(lastDeltaTime, baseline.lastDeltaTime, in model);
+            writer.WriteRawBits(maxHitsExceeded, 1);
+
+            writer.WritePackedBlobArrayDelta(ref contacts, ref baseline.contacts, in model);
+        }
+
+        public void Deserialize(ref JPH_CharacterVirtualState baseline, NativeBlobBuilder builder, ref DataStreamReader reader,
+            in StreamCompressionModel model)
+        {
+            @base.Deserialize(ref baseline.@base, builder, ref reader, in model);
+            position = reader.ReadPackedFloat3Delta(baseline.position, in model);
+            rotation = reader.ReadPackedQuatDelta(baseline.rotation, in model);
+            linearVelocity = reader.ReadPackedFloat3Delta(baseline.linearVelocity, in model);
+            lastDeltaTime = reader.ReadPackedFloatDelta(baseline.lastDeltaTime, in model);
+            maxHitsExceeded = (byte)reader.ReadRawBits(1);
+
+            reader.ReadPackedBlobArrayDelta(builder, ref contacts, ref baseline.contacts, in model);
         }
     }
 }

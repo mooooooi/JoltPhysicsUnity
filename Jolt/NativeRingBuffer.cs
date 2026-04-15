@@ -122,22 +122,19 @@ namespace Jolt
             return m_Buffer->TryGetValue(sequence, out buffer);
         }
 
-        public void Allocate(uint sequence, int bytes, out Span<byte> buffer)
+        public byte* AllocateSlot(uint sequence, int bytes)
         {
 #if ENABLE_UNITY_COLLECTIONS_CHECKS
             AtomicSafetyHandle.CheckWriteAndThrow(m_Safety);
 #endif
-            
-            m_Buffer->Allocate(sequence, bytes, out buffer);
+            return m_Buffer->AllocateSlot(sequence, bytes);
         }
 
-        public void Allocate(uint sequence, void* src, int bytes)
+        public void AllocateSlot(uint sequence, void* src, int bytes)
         {
-            Allocate(sequence, bytes, out Span<byte> buffer);
-            fixed (void* dst = buffer)
-            {
-                UnsafeUtility.MemCpy(dst, src, bytes);
-            }
+            var dst = AllocateSlot(sequence, bytes);
+            UnsafeRingBuffer.CheckNull(dst);
+            UnsafeUtility.MemCpy(dst, src, bytes);
         }
 
         public bool FreeAt(uint sequence)

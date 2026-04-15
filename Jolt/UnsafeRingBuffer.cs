@@ -93,7 +93,7 @@ namespace Jolt
         {
             var index = sequence % m_Capacity;
             var entry = m_Entries[index];
-            return entry.SequenceLShift1 == 0 || entry.SequenceLShift1 >> 1 != sequence ;
+            return entry.SequenceLShift1 > 0 || entry.SequenceLShift1 >> 1 == sequence;
         }
 
         public bool TryGetValue(uint sequence, out Span<byte> buffer)
@@ -116,22 +116,21 @@ namespace Jolt
             return true;
         }
 
-        public void Allocate(uint sequence, int bytes, out Span<byte> buffer)
+        public byte* AllocateSlot(uint sequence, int bytes)
         {
             CheckNull(m_Buffer);
             
             var index = sequence % m_Capacity;
             if (m_Entries[index].SequenceLShift1 > 0 && m_Entries[index].SequenceLShift1 >> 1 > sequence)
             {
-                buffer = Span<byte>.Empty;
-                return;
+                return null;
             }
 
             EnsureSlotCapacity(bytes);
             m_Entries[index].SequenceLShift1 = sequence << 1;
             m_Entries[index].Bytes = bytes;
-            
-            buffer = new Span<byte>((byte*)m_Buffer + m_SlotCapacity * index, bytes);
+
+            return (byte*)m_Buffer + m_SlotCapacity * index;
         }
 
         public bool FreeAt(uint sequence)

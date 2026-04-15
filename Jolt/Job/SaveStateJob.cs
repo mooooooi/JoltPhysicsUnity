@@ -1,3 +1,4 @@
+using System;
 using Unity.Burst;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
@@ -26,7 +27,7 @@ namespace Jolt.Job
             var ptr = stackalloc byte[requiredDataSize];
 
             stateRecorder.ReadBytes(ptr, requiredDataSize);
-            histories.Allocate(frameId, ptr, requiredDataSize);
+            histories.AllocateSlot(frameId, ptr, requiredDataSize);
             stateRecorder.Clear();
         }
     }
@@ -38,19 +39,18 @@ namespace Jolt.Job
         public PhysicsSystem physicsSystem;
         public StateRecorderFilter stateRecorderFilter;
         public NativeRingBuffer histories;
+        public BlobBuilder builder;
         
         public void Execute()
         {
-            var builder = physicsSystem.SaveAlignedState(
+            physicsSystem.SaveAlignedState(
+                builder.ToUnsafePtr(),
                 JPH_StateRecorderState.All,
                 stateRecorderFilter.ToUnsafePtr());
             
             var requiredDataSize = builder.GetRequiredByteCount();
-            histories.Allocate(frameId, (int)requiredDataSize, out var span);
-            fixed (void* ptr = span)
-            {
-                builder.Flush(ptr, requiredDataSize);
-            }
+            var ptr = histories.AllocateSlot(frameId, (int)requiredDataSize);
+            builder.Flush(ptr, requiredDataSize);
             // builder.Destroy();
         }
     }

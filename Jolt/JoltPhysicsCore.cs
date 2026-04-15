@@ -83,7 +83,6 @@ namespace Jolt
                 JobSystem.Destroy();
             if (PhysicsSystem.IsCreated)
                 PhysicsSystem.Destroy();
-            JoltCore.Shutdown();
 
             m_Transforms.Dispose();
             m_Interpolations.Dispose();
@@ -96,6 +95,7 @@ namespace Jolt
             }
 
             if (Main == this) Main = null;
+            JoltCore.Shutdown();
         }
 
         public int GetInterpolationCount()
@@ -150,7 +150,10 @@ namespace Jolt
 
             fixed (void* bufferPtr = buffer)
             {
-                return PhysicsSystem.RestoreAlignedState(bufferPtr, (uint)buffer.Length);
+                // buffer starts with BlobAssetHeader; RestoreAlignedState expects PhysicsSystemState* directly
+                return PhysicsSystem.RestoreAlignedState(
+                    (byte*)bufferPtr + sizeof(BlobAssetHeader),
+                    m_StateRecorderFilter.ToUnsafePtr());
             }
         }
 
