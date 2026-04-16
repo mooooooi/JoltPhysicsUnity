@@ -18,6 +18,12 @@ namespace Jolt
         private static readonly ProfilerMarker m_RestoreStateMarker = new ProfilerMarker("RestoreState");
         private static readonly ProfilerMarker m_SimulateMarker = new ProfilerMarker("Simulate");
         private static readonly ProfilerMarker m_SyncTransformMarker = new ProfilerMarker("SyncTransform");
+        private static readonly ProfilerCounterValue<uint> m_TotalBodiesCounter =
+            new ProfilerCounterValue<uint>(ProfilerCategory.Physics, "Jolt Bodies Total", ProfilerMarkerDataUnit.Count);
+        private static readonly ProfilerCounterValue<uint> m_ActiveRigidBodiesCounter =
+            new ProfilerCounterValue<uint>(ProfilerCategory.Physics, "Jolt Bodies Active Rigid", ProfilerMarkerDataUnit.Count);
+        private static readonly ProfilerCounterValue<uint> m_InterpolationBodyCounter =
+            new ProfilerCounterValue<uint>(ProfilerCategory.Physics, "Jolt Bodies Interpolated", ProfilerMarkerDataUnit.Count);
 
         public static JoltPhysicsCore Main { get; private set; }
 
@@ -72,12 +78,15 @@ namespace Jolt
                 m_StateRecorder = StateRecorderImpl.Create();
                 m_StateRecorderFilter = StateRecorderFilter.Create(null);
             }
+
+            UpdateProfilerCounters();
         }
         
         public void Dispose()
         {
             if (m_Disposed) return;
             m_Disposed = true;
+            ResetProfilerCounters();
             
             if (JobSystem.IsCreated)
                 JobSystem.Destroy();
@@ -136,6 +145,7 @@ namespace Jolt
             m_InterpolationStartTime = Time.time;
             
             PhysicsSystem.Update(deltaTime, 1, JobSystem.ToUnsafePtr());
+            UpdateProfilerCounters();
             
             var syncTransformJob = new SyncTransformJob()
             {
@@ -173,6 +183,7 @@ namespace Jolt
                 previous = transform.localToWorldMatrix,
                 current = transform.localToWorldMatrix
             });
+            m_InterpolationBodyCounter.Value = (uint)m_Interpolations.Length;
         }
 
         public void UnmapBodyToTransform(uint bodyId)
@@ -190,12 +201,36 @@ namespace Jolt
             if (index < 0) return;
             m_Transforms.RemoveAtSwapBack(index);
             m_Interpolations.RemoveAtSwapBack(index);
+            m_InterpolationBodyCounter.Value = (uint)m_Interpolations.Length;
         }
 
         public void SetIsMain()
         {
             if (Main != null) throw new InvalidOperationException("Main JoltPhysicsCore is exists, You must dispose it first!");
             Main = this;
+        }
+
+        private void UpdateProfilerCounters()
+        {
+            if (!PhysicsSystem.IsCreated)
+            {
+                ResetProfilerCounters();
+                return;
+            }
+
+            var physicsSystem = PhysicsSystem.ToUnsafePtr();
+            m_TotalBodiesCounter.Value = UnsafeBindings.JPH_PhysicsSystem_GetNumBodies(physicsSystem);
+            m_ActiveRigidBodiesCounter.Value = UnsafeBindings.JPH_PhysicsSystem_GetNumActiveBodies(
+                physicsSystem,
+                JPH_BodyType.Rigid);
+            m_InterpolationBodyCounter.Value = (uint)m_Interpolations.Length;
+        }
+
+        private static void ResetProfilerCounters()
+        {
+            m_TotalBodiesCounter.Value = 0;
+            m_ActiveRigidBodiesCounter.Value = 0;
+            m_InterpolationBodyCounter.Value = 0;
         }
     }
 }

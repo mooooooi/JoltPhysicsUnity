@@ -4,6 +4,8 @@ namespace Jolt
 {
     public static class StateRecorderBridge
     {
+        private const uint ProjectileObjectLayer = 2;
+
         private static bool IsInitialized;
         private static GCHandle Handle;
         
@@ -35,7 +37,8 @@ namespace Jolt
             if (UnsafeBindings.JPH_Body_IsStatic(body) != 0)
                 return false;
 
-            return UnsafeBindings.JPH_Body_GetObjectLayer(body) != 0;
+            var objectLayer = UnsafeBindings.JPH_Body_GetObjectLayer(body);
+            return objectLayer != 0 && objectLayer != ProjectileObjectLayer;
         }
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
