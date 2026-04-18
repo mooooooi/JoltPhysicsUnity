@@ -2,11 +2,12 @@ using System.Runtime.InteropServices;
 
 namespace Jolt
 {
-    public static class BodyFilterBridge
+    public static unsafe class BodyFilterBridge
     {
 
         private static bool IsInitialized;
         private static GCHandle Handle;
+        private static readonly ShouldDrawDel s_ShouldDraw = ShouldDraw;
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private unsafe delegate bool ShouldDrawDel(void* userData, JPH_Body* body);
@@ -23,7 +24,7 @@ namespace Jolt
 
             var props = new JPH_BodyDrawFilter_Procs
             {
-                ShouldDraw = Marshal.GetFunctionPointerForDelegate<ShouldDrawDel>(ShouldDraw)
+                ShouldDraw = Marshal.GetFunctionPointerForDelegate(s_ShouldDraw)
             };
             Handle = GCHandle.Alloc(props, GCHandleType.Pinned);
             

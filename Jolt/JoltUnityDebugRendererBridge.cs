@@ -4,7 +4,7 @@ using Drawing;
 
 namespace Jolt
 {
-    public static class JoltUnityDebugRendererBridge
+    public static unsafe class JoltUnityDebugRendererBridge
     {
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private unsafe delegate void DrawLineDel(void* userData, rvec3* p0, rvec3* p1, uint color);
@@ -49,6 +49,9 @@ namespace Jolt
 
         private static bool IsInitialized;
         private static GCHandle Handle;
+        private static readonly DrawLineDel s_DrawLine = DrawLine;
+        private static readonly DrawTriangleDel s_DrawTriangle = DrawTriangle;
+        private static readonly DrawText3DDel s_DrawText3D = DrawText3D;
         public static unsafe void Init()
         {
             if (IsInitialized) return;
@@ -56,9 +59,9 @@ namespace Jolt
 
             var props = new JPH_DebugRenderer_Procs()
             {
-                DrawLine = Marshal.GetFunctionPointerForDelegate<DrawLineDel>(DrawLine),
-                DrawTriangle = Marshal.GetFunctionPointerForDelegate<DrawTriangleDel>(DrawTriangle),
-                DrawText3D = Marshal.GetFunctionPointerForDelegate<DrawText3DDel>(DrawText3D),
+                DrawLine = Marshal.GetFunctionPointerForDelegate(s_DrawLine),
+                DrawTriangle = Marshal.GetFunctionPointerForDelegate(s_DrawTriangle),
+                DrawText3D = Marshal.GetFunctionPointerForDelegate(s_DrawText3D),
             };
 
             Handle = GCHandle.Alloc(props, GCHandleType.Pinned);

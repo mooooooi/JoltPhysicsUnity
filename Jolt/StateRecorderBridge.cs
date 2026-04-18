@@ -2,12 +2,16 @@ using System.Runtime.InteropServices;
 
 namespace Jolt
 {
-    public static class StateRecorderBridge
+    public static unsafe class StateRecorderBridge
     {
         private const uint ProjectileObjectLayer = 2;
 
         private static bool IsInitialized;
         private static GCHandle Handle;
+        private static readonly ShouldSaveBodyDel s_ShouldSaveBody = ShouldSaveBody;
+        private static readonly ShouldSaveConstraintDel s_ShouldSaveConstraint = ShouldSaveConstraint;
+        private static readonly ShouldSaveContactDel s_ShouldSaveContact = ShouldSaveContact;
+        private static readonly ShouldRestoreContactDel s_ShouldRestoreContact = ShouldRestoreContact;
         
         public static unsafe void Init()
         {
@@ -16,10 +20,10 @@ namespace Jolt
 
             var props = new JPH_StateRecorderFilter_Procs()
             {
-                ShouldSaveBody = Marshal.GetFunctionPointerForDelegate<ShouldSaveBodyDel>(ShouldSaveBody),
-                ShouldSaveConstraint = Marshal.GetFunctionPointerForDelegate<ShouldSaveConstraintDel>(ShouldSaveConstraint),
-                ShouldSaveContact = Marshal.GetFunctionPointerForDelegate<ShouldSaveContactDel>(ShouldSaveContact), 
-                ShouldRestoreContact = Marshal.GetFunctionPointerForDelegate<ShouldRestoreContactDel>(ShouldRestoreContact)
+                ShouldSaveBody = Marshal.GetFunctionPointerForDelegate(s_ShouldSaveBody),
+                ShouldSaveConstraint = Marshal.GetFunctionPointerForDelegate(s_ShouldSaveConstraint),
+                ShouldSaveContact = Marshal.GetFunctionPointerForDelegate(s_ShouldSaveContact), 
+                ShouldRestoreContact = Marshal.GetFunctionPointerForDelegate(s_ShouldRestoreContact)
             };
             Handle = GCHandle.Alloc(props, GCHandleType.Pinned);
             
