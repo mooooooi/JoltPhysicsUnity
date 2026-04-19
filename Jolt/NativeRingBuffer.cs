@@ -122,6 +122,24 @@ namespace Jolt
             return m_Buffer->TryGetValue(sequence, out buffer);
         }
 
+        public bool TryGetValuePtr(uint sequence, out byte* buffer, out int bytes)
+        {
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+            AtomicSafetyHandle.CheckReadAndThrow(m_Safety);
+#endif
+
+            return m_Buffer->TryGetValuePtr(sequence, out buffer, out bytes);
+        }
+
+        public UnsafeRingBuffer ToUnsafe()
+        {
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+            AtomicSafetyHandle.CheckExistsAndThrow(m_Safety);
+#endif
+
+            return *m_Buffer;
+        }
+
         public byte* AllocateSlot(uint sequence, int bytes)
         {
 #if ENABLE_UNITY_COLLECTIONS_CHECKS

@@ -116,6 +116,23 @@ namespace Jolt
             return true;
         }
 
+        public bool TryGetValuePtr(uint sequence, out byte* buffer, out int bytes)
+        {
+            buffer = null;
+            bytes = 0;
+            if (m_Capacity == 0)
+                return false;
+
+            var index = sequence % m_Capacity;
+            var entry = m_Entries[index];
+            if (entry.SequenceLShift1 == 0 || entry.SequenceLShift1 >> 1 != sequence)
+                return false;
+
+            buffer = (byte*)m_Buffer + m_SlotCapacity * index;
+            bytes = entry.Bytes;
+            return true;
+        }
+
         public byte* AllocateSlot(uint sequence, int bytes)
         {
             CheckNull(m_Buffer);
