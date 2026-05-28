@@ -160,9 +160,11 @@ namespace Jolt
 
             fixed (void* bufferPtr = buffer)
             {
-                // buffer starts with BlobAssetHeader; RestoreAlignedState expects PhysicsSystemState* directly
+                if (!Higo.Gameplay.Runtime.Blobs.BlobUtility.TryGetAlignedPayloadPtr(bufferPtr, buffer.Length, out var payload))
+                    return false;
+
                 return PhysicsSystem.RestoreAlignedState(
-                    (byte*)bufferPtr + sizeof(BlobAssetHeader),
+                    payload,
                     m_StateRecorderFilter.ToUnsafePtr());
             }
         }

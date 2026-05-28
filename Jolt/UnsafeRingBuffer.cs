@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using Higo.Gameplay.Runtime.Blobs;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Mathematics;
@@ -67,6 +68,7 @@ namespace Jolt
 
         public void EnsureSlotCapacity(int value)
         {
+            value = CollectionHelper.Align(value, BlobUtility.Alignment);
             var newBufferLength = math.ceilpow2(value * m_Capacity);
             if (newBufferLength <= m_BufferLength) return;
 
