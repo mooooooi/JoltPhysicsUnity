@@ -93,9 +93,12 @@ namespace Jolt
 
         public bool Contains(uint sequence)
         {
+            if (m_Capacity == 0)
+                return false;
+
             var index = sequence % m_Capacity;
             var entry = m_Entries[index];
-            return entry.SequenceLShift1 > 0 || entry.SequenceLShift1 >> 1 == sequence;
+            return entry.SequenceLShift1 > 0 && entry.SequenceLShift1 >> 1 == sequence;
         }
 
         public bool TryGetValue(uint sequence, out Span<byte> buffer)
