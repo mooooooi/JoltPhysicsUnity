@@ -71,6 +71,13 @@ namespace Jolt
         public static extern byte JPH_BodyInterface_IsAdded([NativeTypeName("const JPH_BodyInterface *")] JPH_BodyInterface* bodyInterface, [NativeTypeName("JPH_BodyID")] uint bodyID);
 
         [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern JPH_Constraint* JPH_PhysicsSystem_CreateAndAddConstraint(JPH_PhysicsSystem* system, [NativeTypeName("JPH_BodyID")] uint bodyID1, [NativeTypeName("JPH_BodyID")] uint bodyID2, [NativeTypeName("const JPH_ConstraintCreationSettings *")] JPH_ConstraintCreationSettings* settings);
+
+        [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("uint8_t")]
+        public static extern byte JPH_PhysicsSystem_RemoveAndDestroyConstraint(JPH_PhysicsSystem* system, JPH_Constraint* constraint);
+
+        [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("uint8_t")]
         public static extern byte JPH_NarrowPhaseQuery_CastRay([NativeTypeName("const JPH_NarrowPhaseQuery *")] JPH_NarrowPhaseQuery* query, [NativeTypeName("const JPH_RayCast *")] JPH_RayCast* ray, JPH_RayCastResult* hit);
 

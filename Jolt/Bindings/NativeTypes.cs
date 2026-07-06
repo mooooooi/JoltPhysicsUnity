@@ -131,6 +131,18 @@ namespace Jolt
         DontActivate = 1,
     }
 
+    public enum JPH_ConstraintKind : byte
+    {
+        Fixed = 1,
+        Distance = 2,
+    }
+
+    public enum JPH_ConstraintSpace : byte
+    {
+        LocalToBodyCOM = 0,
+        WorldSpace = 1,
+    }
+
     [StructLayout(LayoutKind.Sequential)]
     public unsafe struct JPH_BodyCreationSettings
     {
@@ -150,6 +162,21 @@ namespace Jolt
         public float maxLinearVelocity;
         public float maxAngularVelocity;
         public float gravityFactor;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct JPH_ConstraintCreationSettings
+    {
+        public byte kind;
+        public byte enabled;
+        public byte space;
+        public byte autoDetectPoint;
+        public uint priority;
+        public uint numVelocityStepsOverride;
+        public uint numPositionStepsOverride;
+        public float minDistance;
+        public float maxDistance;
+        public ulong userData;
     }
 
     [StructLayout(LayoutKind.Sequential)]

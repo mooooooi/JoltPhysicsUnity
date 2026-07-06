@@ -51,6 +51,52 @@ namespace Jolt.LowLevel
         LinearCast = 1,
     }
 
+    public enum ConstraintKind : byte
+    {
+        Fixed = 1,
+        Distance = 2,
+    }
+
+    public enum ConstraintSpace : byte
+    {
+        LocalToBodyCOM = 0,
+        WorldSpace = 1,
+    }
+
+    public readonly unsafe struct ConstraintId : IEquatable<ConstraintId>
+    {
+        public static readonly ConstraintId Invalid = default;
+
+        public readonly JPH_Constraint* Ptr;
+
+        public ConstraintId(JPH_Constraint* ptr)
+        {
+            Ptr = ptr;
+        }
+
+        public bool IsValid => Ptr != null;
+
+        public bool Equals(ConstraintId other)
+        {
+            return Ptr == other.Ptr;
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is ConstraintId other && Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            return ((IntPtr)Ptr).GetHashCode();
+        }
+
+        public override string ToString()
+        {
+            return IsValid ? ((IntPtr)Ptr).ToString() : "ConstraintId.Invalid";
+        }
+    }
+
     public readonly unsafe struct Shape : IDisposable
     {
         public readonly JPH_Shape* Ptr;
@@ -123,6 +169,47 @@ namespace Jolt.LowLevel
                 MaxLinearVelocity = 500.0f,
                 MaxAngularVelocity = 200.0f,
                 GravityFactor = 1.0f,
+            };
+        }
+    }
+
+    public struct ConstraintCreation
+    {
+        public ConstraintKind Kind;
+        public ConstraintSpace Space;
+        public bool Enabled;
+        public bool AutoDetectPoint;
+        public uint Priority;
+        public uint NumVelocityStepsOverride;
+        public uint NumPositionStepsOverride;
+        public float MinDistance;
+        public float MaxDistance;
+        public ulong UserData;
+
+        public static ConstraintCreation Fixed(ulong userData = 0)
+        {
+            return new ConstraintCreation
+            {
+                Kind = ConstraintKind.Fixed,
+                Space = ConstraintSpace.WorldSpace,
+                Enabled = true,
+                AutoDetectPoint = true,
+                MinDistance = -1.0f,
+                MaxDistance = -1.0f,
+                UserData = userData,
+            };
+        }
+
+        public static ConstraintCreation Distance(ulong userData = 0)
+        {
+            return new ConstraintCreation
+            {
+                Kind = ConstraintKind.Distance,
+                Space = ConstraintSpace.WorldSpace,
+                Enabled = true,
+                MinDistance = -1.0f,
+                MaxDistance = -1.0f,
+                UserData = userData,
             };
         }
     }
@@ -270,6 +357,31 @@ namespace Jolt.LowLevel
             }
         }
 
+        public ConstraintId CreateAndAddConstraint(BodyId bodyId1, BodyId bodyId2, in ConstraintCreation creation)
+        {
+            if (physicsSystem == null || !bodyId1.IsValid || !bodyId2.IsValid || bodyId1.Equals(bodyId2))
+            {
+                return ConstraintId.Invalid;
+            }
+
+            var settings = ToNative(creation);
+            return new ConstraintId(UnsafeBindings.JPH_PhysicsSystem_CreateAndAddConstraint(
+                physicsSystem,
+                bodyId1.Value,
+                bodyId2.Value,
+                &settings));
+        }
+
+        public bool RemoveAndDestroyConstraint(ConstraintId constraintId)
+        {
+            if (physicsSystem == null || !constraintId.IsValid)
+            {
+                return false;
+            }
+
+            return UnsafeBindings.JPH_PhysicsSystem_RemoveAndDestroyConstraint(physicsSystem, constraintId.Ptr) != 0;
+        }
+
         public uint Step(float deltaTime, int collisionSteps)
         {
             return physicsSystem != null
@@ -357,6 +469,23 @@ namespace Jolt.LowLevel
                 maxLinearVelocity = creation.MaxLinearVelocity,
                 maxAngularVelocity = creation.MaxAngularVelocity,
                 gravityFactor = creation.GravityFactor,
+            };
+        }
+
+        private static JPH_ConstraintCreationSettings ToNative(in ConstraintCreation creation)
+        {
+            return new JPH_ConstraintCreationSettings
+            {
+                kind = (byte)creation.Kind,
+                enabled = creation.Enabled ? (byte)1 : (byte)0,
+                space = (byte)creation.Space,
+                autoDetectPoint = creation.AutoDetectPoint ? (byte)1 : (byte)0,
+                priority = creation.Priority,
+                numVelocityStepsOverride = creation.NumVelocityStepsOverride,
+                numPositionStepsOverride = creation.NumPositionStepsOverride,
+                minDistance = creation.MinDistance,
+                maxDistance = creation.MaxDistance,
+                userData = creation.UserData,
             };
         }
     }
