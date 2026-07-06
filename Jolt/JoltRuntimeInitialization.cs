@@ -14,7 +14,6 @@ namespace Jolt
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         public static void Initialize()
         {
-            JoltCore.SetAssertFailureHandler(Marshal.GetFunctionPointerForDelegate(s_OnAssertFailure));
             lock (s_AssertLock)
             {
                 s_PendingAssertMessage = null;

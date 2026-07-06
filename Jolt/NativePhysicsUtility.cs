@@ -32,10 +32,14 @@ namespace Jolt
                 ref var interpolation = ref interpolations[i];
                 
                 interpolation.previous = interpolation.current;
-                
-                rmatrix4x4 m;
-                UnsafeBindings.JPH_BodyInterface_GetWorldTransform(bodies, interpolation.bodyId, &m);
-                interpolation.current = m;
+
+                var position = default(float3);
+                var rotation = quaternion.identity;
+                if (bodies != null &&
+                    UnsafeBindings.JPH_BodyInterface_GetPositionAndRotation(bodies, interpolation.bodyId, &position, &rotation) != 0)
+                {
+                    interpolation.current = float4x4.TRS(position, rotation, new float3(1f));
+                }
             }
         }
 

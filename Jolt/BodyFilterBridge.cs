@@ -21,14 +21,6 @@ namespace Jolt
         {
             if (IsInitialized) return;
             IsInitialized = true;
-
-            var props = new JPH_BodyDrawFilter_Procs
-            {
-                ShouldDraw = Marshal.GetFunctionPointerForDelegate(s_ShouldDraw)
-            };
-            Handle = GCHandle.Alloc(props, GCHandleType.Pinned);
-            
-            UnsafeBindings.JPH_BodyDrawFilter_SetProcs((JPH_BodyDrawFilter_Procs*)Handle.AddrOfPinnedObject());
         }
     }
 }

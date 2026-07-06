@@ -17,17 +17,6 @@ namespace Jolt
         {
             if (IsInitialized) return;
             IsInitialized = true;
-
-            var props = new JPH_StateRecorderFilter_Procs()
-            {
-                ShouldSaveBody = Marshal.GetFunctionPointerForDelegate(s_ShouldSaveBody),
-                ShouldSaveConstraint = Marshal.GetFunctionPointerForDelegate(s_ShouldSaveConstraint),
-                ShouldSaveContact = Marshal.GetFunctionPointerForDelegate(s_ShouldSaveContact), 
-                ShouldRestoreContact = Marshal.GetFunctionPointerForDelegate(s_ShouldRestoreContact)
-            };
-            Handle = GCHandle.Alloc(props, GCHandleType.Pinned);
-            
-            UnsafeBindings.JPH_StateRecorderFilter_SetProcs((JPH_StateRecorderFilter_Procs*)Handle.AddrOfPinnedObject());
         }
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -38,11 +27,7 @@ namespace Jolt
             if (body == null)
                 return false;
 
-            if (UnsafeBindings.JPH_Body_IsStatic(body) != 0)
-                return false;
-
-            var objectLayer = UnsafeBindings.JPH_Body_GetObjectLayer(body);
-            return objectLayer != 0 && objectLayer != ProjectileObjectLayer;
+            return true;
         }
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]

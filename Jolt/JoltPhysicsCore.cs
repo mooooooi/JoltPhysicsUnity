@@ -55,13 +55,7 @@ namespace Jolt
         {
             SaveHistoryCount = saveHistoryCount;
 
-            var physicsSystemSettings = default(JPH_PhysicsSystemSettings);
-
-            physicsSystemSettings.objectLayerPairFilter = objectLayerPairFilter.ToUnsafePtr();
-            physicsSystemSettings.broadPhaseLayerInterface = broadPhaseLayerInterface.ToUnsafePtr();
-            physicsSystemSettings.objectVsBroadPhaseLayerFilter = broadPhaseLayerFilter.ToUnsafePtr();
-            
-            PhysicsSystem = PhysicsSystem.Create(&physicsSystemSettings);
+            PhysicsSystem = PhysicsSystem.Create(65536, 0, 65536, 10240);
 
             var jobSystemSettings = default(JobSystemThreadPoolConfig);
             JobSystem = JobSystemThreadPool.Create(&jobSystemSettings);
@@ -220,11 +214,8 @@ namespace Jolt
                 return;
             }
 
-            var physicsSystem = PhysicsSystem.ToUnsafePtr();
-            m_TotalBodiesCounter.Value = UnsafeBindings.JPH_PhysicsSystem_GetNumBodies(physicsSystem);
-            m_ActiveRigidBodiesCounter.Value = UnsafeBindings.JPH_PhysicsSystem_GetNumActiveBodies(
-                physicsSystem,
-                JPH_BodyType.Rigid);
+            m_TotalBodiesCounter.Value = 0;
+            m_ActiveRigidBodiesCounter.Value = 0;
             m_InterpolationBodyCounter.Value = (uint)m_Interpolations.Length;
         }
 
