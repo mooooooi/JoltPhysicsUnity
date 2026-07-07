@@ -110,16 +110,19 @@ namespace Jolt.LowLevel
 
         public static Shape CreateSphere(float radius)
         {
+            UnsafeBindings.JPH_Init();
             return new Shape(UnsafeBindings.JPH_Shape_CreateSphere(radius));
         }
 
         public static Shape CreateBox(float3 halfExtent, float convexRadius = 0.05f)
         {
+            UnsafeBindings.JPH_Init();
             return new Shape(UnsafeBindings.JPH_Shape_CreateBox(halfExtent, convexRadius));
         }
 
         public static Shape CreateCapsule(float halfHeightOfCylinder, float radius)
         {
+            UnsafeBindings.JPH_Init();
             return new Shape(UnsafeBindings.JPH_Shape_CreateCapsule(halfHeightOfCylinder, radius));
         }
 
