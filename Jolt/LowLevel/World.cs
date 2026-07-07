@@ -1,4 +1,5 @@
 using System;
+using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Mathematics;
 
@@ -233,11 +234,13 @@ namespace Jolt.LowLevel
     {
         public readonly BodyId BodyId;
         public readonly float Fraction;
+        public readonly uint SubShapeId;
 
-        public RaycastHit(BodyId bodyId, float fraction)
+        public RaycastHit(BodyId bodyId, float fraction, uint subShapeId = 0)
         {
             BodyId = bodyId;
             Fraction = fraction;
+            SubShapeId = subShapeId;
         }
     }
 
@@ -245,6 +248,7 @@ namespace Jolt.LowLevel
     {
         private JPH_PhysicsSystem* physicsSystem;
         private JPH_BodyInterface* bodyInterface;
+        private static bool s_CastRayAllUnavailable;
         private bool disposed;
 
         public World(uint maxBodies, uint numBodyMutexes = 0, uint maxBodyPairs = 65536, uint maxContactConstraints = 10240)
@@ -418,8 +422,114 @@ namespace Jolt.LowLevel
                 return false;
             }
 
-            hit = new RaycastHit(new BodyId(nativeHit.bodyID), nativeHit.fraction);
+            hit = new RaycastHit(new BodyId(nativeHit.bodyID), nativeHit.fraction, nativeHit.subShapeID2);
             return true;
+        }
+
+        public int CastRayAll(in RaycastInput input, NativeList<RaycastHit> hits)
+        {
+            if (!hits.IsCreated || physicsSystem == null)
+            {
+                return 0;
+            }
+
+            var query = UnsafeBindings.JPH_PhysicsSystem_GetNarrowPhaseQueryNoLock(physicsSystem);
+            if (query == null)
+            {
+                return 0;
+            }
+
+            var ray = new JPH_RayCast
+            {
+                origin = input.Origin,
+                direction = input.Direction,
+            };
+
+            if (s_CastRayAllUnavailable)
+            {
+                return CastRayAllFallback(input, hits);
+            }
+
+            uint hitCount;
+            try
+            {
+                hitCount = UnsafeBindings.JPH_NarrowPhaseQuery_CastRayAll(query, &ray, null, 0);
+            }
+            catch (EntryPointNotFoundException)
+            {
+                s_CastRayAllUnavailable = true;
+                return CastRayAllFallback(input, hits);
+            }
+
+            if (hitCount == 0)
+            {
+                return 0;
+            }
+
+            using var nativeHits = new NativeArray<JPH_RayCastResult>((int)hitCount, Allocator.Temp);
+            var writtenCount = UnsafeBindings.JPH_NarrowPhaseQuery_CastRayAll(
+                query,
+                &ray,
+                (JPH_RayCastResult*)nativeHits.GetUnsafePtr(),
+                hitCount);
+
+            var count = (int)writtenCount;
+            for (var i = 0; i < count; i++)
+            {
+                var nativeHit = nativeHits[i];
+                hits.Add(new RaycastHit(new BodyId(nativeHit.bodyID), nativeHit.fraction, nativeHit.subShapeID2));
+            }
+
+            return count;
+        }
+
+        private int CastRayAllFallback(in RaycastInput input, NativeList<RaycastHit> hits)
+        {
+            const int kMaxIterations = 128;
+            const float kAdvanceEpsilon = 1e-2f;
+
+            var startLength = hits.Length;
+            var consumedFraction = 0f;
+            for (var i = 0; i < kMaxIterations && consumedFraction < 1f; i++)
+            {
+                var remainingFraction = 1f - consumedFraction;
+                var origin = input.Origin + input.Direction * consumedFraction;
+                var direction = input.Direction * remainingFraction;
+                if (!CastRay(new RaycastInput(origin, direction), out var hit))
+                {
+                    break;
+                }
+
+                var hitFraction = consumedFraction + math.saturate(hit.Fraction) * remainingFraction;
+                if (!ContainsHit(hits, hit.BodyId, hit.SubShapeId))
+                {
+                    hits.Add(new RaycastHit(hit.BodyId, hitFraction, hit.SubShapeId));
+                }
+
+                var nextFraction = hitFraction + kAdvanceEpsilon;
+                if (nextFraction <= consumedFraction)
+                {
+                    nextFraction = consumedFraction + kAdvanceEpsilon;
+                }
+
+                consumedFraction = nextFraction;
+            }
+
+            return hits.Length - startLength;
+        }
+
+        private static bool ContainsHit(NativeList<RaycastHit> hits, BodyId bodyId, uint subShapeId)
+        {
+            for (var i = 0; i < hits.Length; i++)
+            {
+                var hit = hits[i];
+                if (hit.BodyId.Equals(bodyId) && hit.SubShapeId == subShapeId)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public UnsafeState SaveState()
