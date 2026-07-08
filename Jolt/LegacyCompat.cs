@@ -468,14 +468,8 @@ namespace Jolt
         public static void JPH_BodyInterface_SetLinearVelocity(JPH_BodyInterface* bodyInterface, uint bodyId, float3* velocity) { }
         public static void JPH_BodyInterface_SetAngularVelocity(JPH_BodyInterface* bodyInterface, uint bodyId, float3* velocity) { }
         public static byte JPH_BodyInterface_SetLinearAndAngularVelocity(JPH_BodyInterface* bodyInterface, uint bodyId, float3* linearVelocity, float3* angularVelocity) => 0;
-        public static void JPH_BodyInterface_AddForce(JPH_BodyInterface* bodyInterface, uint bodyId, float3* force) { }
-        public static void JPH_BodyInterface_AddTorque(JPH_BodyInterface* bodyInterface, uint bodyId, float3* torque) { }
-        public static void JPH_BodyInterface_AddForceAndTorque(JPH_BodyInterface* bodyInterface, uint bodyId, float3* force, float3* torque) { }
-        public static void JPH_BodyInterface_AddImpulse(JPH_BodyInterface* bodyInterface, uint bodyId, float3* impulse) { }
         public static byte JPH_BodyInterface_SetPositionAndRotation(JPH_BodyInterface* bodyInterface, uint bodyId, rvec3* position, quaternion* rotation, JPH_Activation activation) => 0;
         public static void JPH_BodyInterface_MoveKinematic(JPH_BodyInterface* bodyInterface, uint bodyId, rvec3* targetPosition, quaternion* targetRotation, float deltaTime) { }
-        public static void JPH_BodyInterface_ActivateBody(JPH_BodyInterface* bodyInterface, uint bodyId) { }
-        public static void JPH_BodyInterface_DeactivateBody(JPH_BodyInterface* bodyInterface, uint bodyId) { }
         public static void JPH_BodyInterface_RemoveBody(JPH_BodyInterface* bodyInterface, uint bodyId) { }
         public static void JPH_BodyInterface_DestroyBody(JPH_BodyInterface* bodyInterface, uint bodyId) { }
 

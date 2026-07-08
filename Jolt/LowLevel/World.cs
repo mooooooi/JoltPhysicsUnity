@@ -364,6 +364,114 @@ namespace Jolt.LowLevel
             }
         }
 
+        public bool AddForce(BodyId bodyId, float3 force)
+        {
+            if (bodyInterface == null || !bodyId.IsValid)
+            {
+                return false;
+            }
+
+            try
+            {
+                UnsafeBindings.JPH_BodyInterface_AddForce(bodyInterface, bodyId.Value, &force);
+                return true;
+            }
+            catch (EntryPointNotFoundException)
+            {
+                return false;
+            }
+        }
+
+        public bool AddTorque(BodyId bodyId, float3 torque)
+        {
+            if (bodyInterface == null || !bodyId.IsValid)
+            {
+                return false;
+            }
+
+            try
+            {
+                UnsafeBindings.JPH_BodyInterface_AddTorque(bodyInterface, bodyId.Value, &torque);
+                return true;
+            }
+            catch (EntryPointNotFoundException)
+            {
+                return false;
+            }
+        }
+
+        public bool AddForceAndTorque(BodyId bodyId, float3 force, float3 torque)
+        {
+            if (bodyInterface == null || !bodyId.IsValid)
+            {
+                return false;
+            }
+
+            try
+            {
+                UnsafeBindings.JPH_BodyInterface_AddForceAndTorque(bodyInterface, bodyId.Value, &force, &torque);
+                return true;
+            }
+            catch (EntryPointNotFoundException)
+            {
+                return false;
+            }
+        }
+
+        public bool AddImpulse(BodyId bodyId, float3 impulse)
+        {
+            if (bodyInterface == null || !bodyId.IsValid)
+            {
+                return false;
+            }
+
+            try
+            {
+                UnsafeBindings.JPH_BodyInterface_AddImpulse(bodyInterface, bodyId.Value, &impulse);
+                return true;
+            }
+            catch (EntryPointNotFoundException)
+            {
+                return false;
+            }
+        }
+
+        public bool Activate(BodyId bodyId)
+        {
+            if (bodyInterface == null || !bodyId.IsValid)
+            {
+                return false;
+            }
+
+            try
+            {
+                UnsafeBindings.JPH_BodyInterface_ActivateBody(bodyInterface, bodyId.Value);
+                return true;
+            }
+            catch (EntryPointNotFoundException)
+            {
+                return false;
+            }
+        }
+
+        public bool Deactivate(BodyId bodyId)
+        {
+            if (bodyInterface == null || !bodyId.IsValid)
+            {
+                return false;
+            }
+
+            try
+            {
+                UnsafeBindings.JPH_BodyInterface_DeactivateBody(bodyInterface, bodyId.Value);
+                return true;
+            }
+            catch (EntryPointNotFoundException)
+            {
+                return false;
+            }
+        }
+
         public ConstraintId CreateAndAddConstraint(BodyId bodyId1, BodyId bodyId2, in ConstraintCreation creation)
         {
             if (physicsSystem == null || !bodyId1.IsValid || !bodyId2.IsValid || bodyId1.Equals(bodyId2))
