@@ -396,6 +396,14 @@ namespace Jolt.LowLevel
                 : 0xffffffffu;
         }
 
+        public void OptimizeBroadPhase()
+        {
+            if (physicsSystem != null)
+            {
+                UnsafeBindings.JPH_PhysicsSystem_OptimizeBroadPhase(physicsSystem);
+            }
+        }
+
         public bool CastRay(in RaycastInput input, out RaycastHit hit)
         {
             hit = default;
