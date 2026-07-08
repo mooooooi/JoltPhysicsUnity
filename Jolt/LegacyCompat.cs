@@ -530,17 +530,39 @@ namespace Jolt
             float3* linearVelocity,
             float3* angularVelocity) { }
         public static void JPH_BodyInterface_SetShape(JPH_BodyInterface* bodyInterface, uint bodyId, JPH_Shape* shape, byte updateMassProperties, JPH_Activation activation) { }
-        public static uint JPH_Body_GetID(JPH_Body* body) => 0xffffffffu;
+        [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern uint JPH_Body_GetID(JPH_Body* body);
         public static void JPH_BodyInterface_GetPosition(JPH_BodyInterface* bodyInterface, uint bodyId, rvec3* position)
         {
             if (position != null)
                 *position = rvec3.zero;
         }
 
-        public static JPH_ObjectLayerFilter* JPH_ObjectLayerFilter_Create(void* userData) => null;
-        public static void JPH_ObjectLayerFilter_SetProcs(JPH_ObjectLayerFilter_Procs* procs) { }
-        public static JPH_BodyFilter* JPH_BodyFilter_Create(void* userData) => null;
-        public static void JPH_BodyFilter_SetProcs(JPH_BodyFilter_Procs* procs) { }
+        [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern JPH_ObjectLayerFilter* JPH_ObjectLayerFilter_Create(void* userData);
+
+        [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern void JPH_ObjectLayerFilter_SetProcs(JPH_ObjectLayerFilter_Procs* procs);
+
+        [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern void JPH_ObjectLayerFilter_Destroy(JPH_ObjectLayerFilter* filter);
+
+        [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern JPH_BodyFilter* JPH_BodyFilter_Create(void* userData);
+
+        [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern void JPH_BodyFilter_SetProcs(JPH_BodyFilter_Procs* procs);
+
+        [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern void JPH_BodyFilter_Destroy(JPH_BodyFilter* filter);
+
+        [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern byte JPH_NarrowPhaseQuery_CastRayFiltered(
+            JPH_NarrowPhaseQuery* query,
+            JPH_RayCast* ray,
+            JPH_RayCastResult* hit,
+            JPH_ObjectLayerFilter* objectLayerFilter,
+            JPH_BodyFilter* bodyFilter);
 
         public static uint JPH_CharacterVirtual_GetInnerBodyID(JPH_CharacterVirtual* character) => 0xffffffffu;
         public static void JPH_CharacterVirtual_SaveAlignedState(JPH_CharacterVirtual* character, void* builder) { }
