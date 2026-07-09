@@ -67,16 +67,16 @@ namespace Jolt
         public static extern byte JPH_BodyInterface_GetLinearAndAngularVelocity([NativeTypeName("const JPH_BodyInterface *")] JPH_BodyInterface* bodyInterface, [NativeTypeName("JPH_BodyID")] uint bodyID, [NativeTypeName("JPH_Vec3 *")] float3* linearVelocity, [NativeTypeName("JPH_Vec3 *")] float3* angularVelocity);
 
         [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern void JPH_BodyInterface_AddForce(JPH_BodyInterface* bodyInterface, [NativeTypeName("JPH_BodyID")] uint bodyID, [NativeTypeName("JPH_Vec3 *")] float3* force);
+        public static extern void JPH_BodyInterface_AddForce(JPH_BodyInterface* bodyInterface, [NativeTypeName("JPH_BodyID")] uint bodyID, [NativeTypeName("const JPH_Vec3 *")] float3* force);
 
         [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern void JPH_BodyInterface_AddTorque(JPH_BodyInterface* bodyInterface, [NativeTypeName("JPH_BodyID")] uint bodyID, [NativeTypeName("JPH_Vec3 *")] float3* torque);
+        public static extern void JPH_BodyInterface_AddTorque(JPH_BodyInterface* bodyInterface, [NativeTypeName("JPH_BodyID")] uint bodyID, [NativeTypeName("const JPH_Vec3 *")] float3* torque);
 
         [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern void JPH_BodyInterface_AddForceAndTorque(JPH_BodyInterface* bodyInterface, [NativeTypeName("JPH_BodyID")] uint bodyID, [NativeTypeName("JPH_Vec3 *")] float3* force, [NativeTypeName("JPH_Vec3 *")] float3* torque);
+        public static extern void JPH_BodyInterface_AddForceAndTorque(JPH_BodyInterface* bodyInterface, [NativeTypeName("JPH_BodyID")] uint bodyID, [NativeTypeName("const JPH_Vec3 *")] float3* force, [NativeTypeName("const JPH_Vec3 *")] float3* torque);
 
         [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern void JPH_BodyInterface_AddImpulse(JPH_BodyInterface* bodyInterface, [NativeTypeName("JPH_BodyID")] uint bodyID, [NativeTypeName("JPH_Vec3 *")] float3* impulse);
+        public static extern void JPH_BodyInterface_AddImpulse(JPH_BodyInterface* bodyInterface, [NativeTypeName("JPH_BodyID")] uint bodyID, [NativeTypeName("const JPH_Vec3 *")] float3* impulse);
 
         [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern void JPH_BodyInterface_ActivateBody(JPH_BodyInterface* bodyInterface, [NativeTypeName("JPH_BodyID")] uint bodyID);
@@ -89,6 +89,28 @@ namespace Jolt
         public static extern byte JPH_BodyInterface_IsAdded([NativeTypeName("const JPH_BodyInterface *")] JPH_BodyInterface* bodyInterface, [NativeTypeName("JPH_BodyID")] uint bodyID);
 
         [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("JPH_BodyID")]
+        public static extern uint JPH_Body_GetID([NativeTypeName("const JPH_Body *")] JPH_Body* body);
+
+        [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern void JPH_ObjectLayerFilter_SetProcs([NativeTypeName("const JPH_ObjectLayerFilter_Procs *")] JPH_ObjectLayerFilter_Procs* procs);
+
+        [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern JPH_ObjectLayerFilter* JPH_ObjectLayerFilter_Create(void* userData);
+
+        [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern void JPH_ObjectLayerFilter_Destroy(JPH_ObjectLayerFilter* filter);
+
+        [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern void JPH_BodyFilter_SetProcs([NativeTypeName("const JPH_BodyFilter_Procs *")] JPH_BodyFilter_Procs* procs);
+
+        [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern JPH_BodyFilter* JPH_BodyFilter_Create(void* userData);
+
+        [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern void JPH_BodyFilter_Destroy(JPH_BodyFilter* filter);
+
+        [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern JPH_Constraint* JPH_PhysicsSystem_CreateAndAddConstraint(JPH_PhysicsSystem* system, [NativeTypeName("JPH_BodyID")] uint bodyID1, [NativeTypeName("JPH_BodyID")] uint bodyID2, [NativeTypeName("const JPH_ConstraintCreationSettings *")] JPH_ConstraintCreationSettings* settings);
 
         [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
@@ -98,6 +120,10 @@ namespace Jolt
         [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("uint8_t")]
         public static extern byte JPH_NarrowPhaseQuery_CastRay([NativeTypeName("const JPH_NarrowPhaseQuery *")] JPH_NarrowPhaseQuery* query, [NativeTypeName("const JPH_RayCast *")] JPH_RayCast* ray, JPH_RayCastResult* hit);
+
+        [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("uint8_t")]
+        public static extern byte JPH_NarrowPhaseQuery_CastRayFiltered([NativeTypeName("const JPH_NarrowPhaseQuery *")] JPH_NarrowPhaseQuery* query, [NativeTypeName("const JPH_RayCast *")] JPH_RayCast* ray, JPH_RayCastResult* hit, [NativeTypeName("const JPH_ObjectLayerFilter *")] JPH_ObjectLayerFilter* objectLayerFilter, [NativeTypeName("const JPH_BodyFilter *")] JPH_BodyFilter* bodyFilter);
 
         [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("uint32_t")]
