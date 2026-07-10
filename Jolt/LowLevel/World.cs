@@ -648,18 +648,6 @@ namespace Jolt.LowLevel
             return false;
         }
 
-        public UnsafeState SaveState()
-        {
-            return new UnsafeState(UnsafeBindings.JPH_PhysicsSystem_SaveAlignedState(physicsSystem));
-        }
-
-        public bool RestoreState(UnsafeState state)
-        {
-            return physicsSystem != null
-                && state.IsCreated
-                && UnsafeBindings.JPH_PhysicsSystem_RestoreAlignedState(physicsSystem, state.Ptr) != 0;
-        }
-
         public void Dispose()
         {
             if (disposed)
@@ -719,22 +707,4 @@ namespace Jolt.LowLevel
         }
     }
 
-    public readonly unsafe struct UnsafeState : IDisposable
-    {
-        public readonly JPH_PhysicsSystemState* Ptr;
-
-        public UnsafeState(JPH_PhysicsSystemState* ptr)
-        {
-            Ptr = ptr;
-        }
-
-        public bool IsCreated => Ptr != null;
-        public UIntPtr Size => IsCreated ? UnsafeBindings.JPH_PhysicsSystemState_GetSize(Ptr) : UIntPtr.Zero;
-        public byte* Data => IsCreated ? UnsafeBindings.JPH_PhysicsSystemState_GetData(Ptr) : null;
-
-        public void Dispose()
-        {
-            UnsafeBindings.JPH_PhysicsSystemState_Destroy(Ptr);
-        }
-    }
 }

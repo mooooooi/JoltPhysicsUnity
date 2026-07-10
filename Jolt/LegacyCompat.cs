@@ -594,7 +594,7 @@ namespace Jolt
         public void* ToUnsafePtr() => null;
     }
 
-    [Obsolete("Legacy compatibility shell. New code should use Jolt.LowLevel.UnsafeState.")]
+    [Obsolete("Legacy compatibility shell. New code should use the DOD registry SyncIn/SyncOut path.")]
     public unsafe struct StateRecorderImpl
     {
         public bool IsCreated => false;
@@ -606,7 +606,7 @@ namespace Jolt
         public void Clear() { }
     }
 
-    [Obsolete("Legacy compatibility shell. New code should use Jolt.LowLevel.UnsafeState.")]
+    [Obsolete("Legacy compatibility shell. New code should use the DOD registry SyncIn/SyncOut path.")]
     public unsafe struct StateRecorderFilter
     {
         public bool IsCreated => false;

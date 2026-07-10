@@ -1,7 +1,6 @@
 using System;
 using Jolt.Job;
 using Unity.Collections;
-using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
 using Unity.Jobs.LowLevel.Unsafe;
 using Unity.Mathematics;
@@ -14,8 +13,6 @@ namespace Jolt
 {
     public unsafe class JoltPhysicsCore : IDisposable
     {
-        private static readonly ProfilerMarker m_SaveStateMarker = new ProfilerMarker("SaveState");
-        private static readonly ProfilerMarker m_RestoreStateMarker = new ProfilerMarker("RestoreState");
         private static readonly ProfilerMarker m_SimulateMarker = new ProfilerMarker("Simulate");
         private static readonly ProfilerMarker m_SyncTransformMarker = new ProfilerMarker("SyncTransform");
         private static readonly ProfilerCounterValue<uint> m_TotalBodiesCounter =
@@ -38,16 +35,8 @@ namespace Jolt
         private TransformAccessArray m_Transforms;
         private NativeList<PhysicsBodyInterpolation> m_Interpolations;
 
-        private StateRecorderImpl m_StateRecorder;
-        private StateRecorderFilter m_StateRecorderFilter;
-
-        private byte[] m_TempBytes = new byte[4096];
-
         private float m_InterpolationStartTime;
         private float m_InterpolationDeltaTime;
-
-        public StateRecorderFilter  StateRecorderFilter => m_StateRecorderFilter;
-        public StateRecorderImpl StateRecorder => m_StateRecorder;
 
         public JoltPhysicsCore(
             ObjectLayerPairFilter objectLayerPairFilter, BroadPhaseLayerInterface broadPhaseLayerInterface, ObjectVsBroadPhaseLayerFilter broadPhaseLayerFilter,
@@ -65,13 +54,6 @@ namespace Jolt
             
             JoltUnityDebugRendererBridge.Init();
             BodyFilterBridge.Init();
-            StateRecorderBridge.Init();
-
-            if (saveHistoryCount > 0)
-            {
-                m_StateRecorder = StateRecorderImpl.Create();
-                m_StateRecorderFilter = StateRecorderFilter.Create(null);
-            }
 
             UpdateProfilerCounters();
         }
@@ -89,13 +71,6 @@ namespace Jolt
 
             m_Transforms.Dispose();
             m_Interpolations.Dispose();
-
-            if (SaveHistoryCount > 0)
-            {
-                m_StateRecorder.Destroy();
-                m_StateRecorderFilter.Destroy();
-               
-            }
 
             if (Main == this) Main = null;
             JoltCore.Shutdown();
@@ -146,21 +121,6 @@ namespace Jolt
                 bodyInterface = BodyInterface, interpolations = m_Interpolations.AsArray()
             };
             syncTransformJob.RunBatchByRef(m_Interpolations.Length);
-        }
-
-        public bool TryRollback(UnsafeRingBuffer histories, uint sequenceId)
-        {
-            if (!histories.TryGetValue(sequenceId, out var buffer)) return false;
-
-            fixed (void* bufferPtr = buffer)
-            {
-                if (!Higo.Gameplay.Runtime.Blobs.BlobUtility.TryGetAlignedPayloadPtr(bufferPtr, buffer.Length, out var payload))
-                    return false;
-
-                return PhysicsSystem.RestoreAlignedState(
-                    payload,
-                    m_StateRecorderFilter.ToUnsafePtr());
-            }
         }
 
         public void Interpolate()
