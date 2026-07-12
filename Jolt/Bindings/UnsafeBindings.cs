@@ -44,6 +44,24 @@ namespace Jolt
         public static extern void JPH_Shape_Release([NativeTypeName("const JPH_Shape *")] JPH_Shape* shape);
 
         [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern JPH_CharacterVirtual* JPH_CharacterVirtual_Create(JPH_PhysicsSystem* system, [NativeTypeName("const JPH_CharacterVirtualCreationSettings *")] JPH_CharacterVirtualCreationSettings* settings, [NativeTypeName("const JPH_CharacterVirtualState *")] JPH_CharacterVirtualState* state);
+
+        [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern void JPH_CharacterVirtual_Destroy(JPH_CharacterVirtual* character);
+
+        [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("uint8_t")]
+        public static extern byte JPH_CharacterVirtual_SetState(JPH_CharacterVirtual* character, [NativeTypeName("const JPH_CharacterVirtualState *")] JPH_CharacterVirtualState* state, [NativeTypeName("uint8_t")] byte resetContacts);
+
+        [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("uint8_t")]
+        public static extern byte JPH_CharacterVirtual_GetState([NativeTypeName("const JPH_CharacterVirtual *")] JPH_CharacterVirtual* character, JPH_CharacterVirtualState* state);
+
+        [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("uint8_t")]
+        public static extern byte JPH_CharacterVirtual_ExtendedUpdate(JPH_CharacterVirtual* character, float deltaTime, [NativeTypeName("JPH_Vec3")] float3 gravity, [NativeTypeName("const JPH_CharacterVirtualUpdateSettings *")] JPH_CharacterVirtualUpdateSettings* settings, [NativeTypeName("uint64_t")] ulong collisionLayerMask);
+
+        [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("JPH_BodyID")]
         public static extern uint JPH_BodyInterface_CreateAndAddBody(JPH_BodyInterface* bodyInterface, [NativeTypeName("const JPH_BodyCreationSettings *")] JPH_BodyCreationSettings* settings, JPH_Activation activation);
 

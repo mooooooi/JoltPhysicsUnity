@@ -28,11 +28,6 @@ namespace Jolt
         public int _unused;
     }
 
-    public unsafe partial struct JPH_CharacterVirtualState
-    {
-        public int _unused;
-    }
-
     public unsafe partial struct JPH_Shape
     {
         public int _unused;
@@ -118,6 +113,14 @@ namespace Jolt
         InAir = 3,
     }
 
+    public enum JPH_CharacterGroundState
+    {
+        OnGround = 0,
+        OnSteepGround = 1,
+        NotSupported = 2,
+        InAir = 3,
+    }
+
     public enum JPH_CollisionCollectorType
     {
         ClosestHit = 0,
@@ -177,6 +180,51 @@ namespace Jolt
         public float minDistance;
         public float maxDistance;
         public ulong userData;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct JPH_CharacterVirtualCreationSettings
+    {
+        public JPH_Shape* shape;
+        public float3 up;
+        public float3 shapeOffset;
+        public float supportingVolumeConstant;
+        public float maxSlopeAngle;
+        public float mass;
+        public float maxStrength;
+        public float predictiveContactDistance;
+        public uint maxCollisionIterations;
+        public uint maxConstraintIterations;
+        public float minTimeRemaining;
+        public float collisionTolerance;
+        public float characterPadding;
+        public uint maxNumHits;
+        public float hitReductionCosMaxAngle;
+        public float penetrationRecoverySpeed;
+        public uint characterID;
+        public ulong userData;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public partial struct JPH_CharacterVirtualState
+    {
+        public float3 position;
+        public quaternion rotation;
+        public float3 linearVelocity;
+        public float3 groundNormal;
+        public float3 groundVelocity;
+        public JPH_CharacterGroundState groundState;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct JPH_CharacterVirtualUpdateSettings
+    {
+        public float3 stickToFloorStepDown;
+        public float3 walkStairsStepUp;
+        public float walkStairsMinStepForward;
+        public float walkStairsStepForwardTest;
+        public float walkStairsCosAngleForwardContact;
+        public float3 walkStairsStepDownExtra;
     }
 
     [StructLayout(LayoutKind.Sequential)]
