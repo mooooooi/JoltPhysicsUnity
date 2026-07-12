@@ -38,6 +38,12 @@ namespace Jolt
         public static extern JPH_Shape* JPH_Shape_CreateCapsule(float halfHeightOfCylinder, float radius);
 
         [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern JPH_Shape* JPH_Shape_CreateCylinder(float halfHeight, float radius, float convexRadius);
+
+        [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern JPH_Shape* JPH_Shape_CreatePlane([NativeTypeName("JPH_Vec3")] float3 normal, float distance, float halfExtent);
+
+        [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern void JPH_Shape_AddRef([NativeTypeName("const JPH_Shape *")] JPH_Shape* shape);
 
         [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
@@ -101,6 +107,10 @@ namespace Jolt
 
         [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern void JPH_BodyInterface_DeactivateBody(JPH_BodyInterface* bodyInterface, [NativeTypeName("JPH_BodyID")] uint bodyID);
+
+        [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("uint8_t")]
+        public static extern byte JPH_BodyInterface_IsActive([NativeTypeName("const JPH_BodyInterface *")] JPH_BodyInterface* bodyInterface, [NativeTypeName("JPH_BodyID")] uint bodyID);
 
         [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("uint8_t")]

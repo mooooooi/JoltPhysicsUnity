@@ -127,6 +127,18 @@ namespace Jolt.LowLevel
             return new Shape(UnsafeBindings.JPH_Shape_CreateCapsule(halfHeightOfCylinder, radius));
         }
 
+        public static Shape CreateCylinder(float halfHeight, float radius, float convexRadius = 0.05f)
+        {
+            UnsafeBindings.JPH_Init();
+            return new Shape(UnsafeBindings.JPH_Shape_CreateCylinder(halfHeight, radius, convexRadius));
+        }
+
+        public static Shape CreatePlane(float3 normal, float distance, float halfExtent)
+        {
+            UnsafeBindings.JPH_Init();
+            return new Shape(UnsafeBindings.JPH_Shape_CreatePlane(normal, distance, halfExtent));
+        }
+
         public void AddRef()
         {
             UnsafeBindings.JPH_Shape_AddRef(Ptr);
@@ -470,6 +482,13 @@ namespace Jolt.LowLevel
             {
                 return false;
             }
+        }
+
+        public bool IsActive(BodyId bodyId)
+        {
+            return bodyInterface != null &&
+                   bodyId.IsValid &&
+                   UnsafeBindings.JPH_BodyInterface_IsActive(bodyInterface, bodyId.Value) != 0;
         }
 
         public ConstraintId CreateAndAddConstraint(BodyId bodyId1, BodyId bodyId2, in ConstraintCreation creation)
