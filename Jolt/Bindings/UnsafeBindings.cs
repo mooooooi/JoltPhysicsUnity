@@ -29,28 +29,15 @@ namespace Jolt
         public static extern JPH_NarrowPhaseQuery* JPH_PhysicsSystem_GetNarrowPhaseQueryNoLock(JPH_PhysicsSystem* system);
 
         [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern JPH_Shape* JPH_Shape_CreateSphere(float radius);
-
-        [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern JPH_Shape* JPH_Shape_CreateBox([NativeTypeName("JPH_Vec3")] float3 halfExtent, float convexRadius);
-
-        [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern JPH_Shape* JPH_Shape_CreateCapsule(float halfHeightOfCylinder, float radius);
-
-        [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern JPH_Shape* JPH_Shape_CreateCylinder(float halfHeight, float radius, float convexRadius);
-
-        [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern JPH_Shape* JPH_Shape_CreatePlane([NativeTypeName("JPH_Vec3")] float3 normal, float distance, float halfExtent);
-
-        [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern void JPH_Shape_AddRef([NativeTypeName("const JPH_Shape *")] JPH_Shape* shape);
-
-        [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern void JPH_Shape_Release([NativeTypeName("const JPH_Shape *")] JPH_Shape* shape);
-
-        [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern JPH_CharacterVirtual* JPH_CharacterVirtual_Create(JPH_PhysicsSystem* system, [NativeTypeName("const JPH_CharacterVirtualCreationSettings *")] JPH_CharacterVirtualCreationSettings* settings, [NativeTypeName("const JPH_CharacterVirtualState *")] JPH_CharacterVirtualState* state);
+        [return: NativeTypeName("uint8_t")]
+        public static extern byte JPH_PhysicsSystem_SyncWorldIn(
+            JPH_PhysicsSystem* system,
+            [NativeTypeName("const JPH_RigidBodyCreation *")] JPH_RigidBodyCreation* rigidBodies,
+            [NativeTypeName("uint32_t")] uint rigidBodyCount,
+            [NativeTypeName("JPH_BodyID *")] uint* rigidBodyIDs,
+            [NativeTypeName("const JPH_CharacterVirtualCreation *")] JPH_CharacterVirtualCreation* characters,
+            [NativeTypeName("uint32_t")] uint characterCount,
+            JPH_CharacterVirtual** characterHandles);
 
         [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern void JPH_CharacterVirtual_Destroy(JPH_CharacterVirtual* character);
@@ -66,10 +53,6 @@ namespace Jolt
         [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("uint8_t")]
         public static extern byte JPH_CharacterVirtual_ExtendedUpdate(JPH_CharacterVirtual* character, float deltaTime, [NativeTypeName("JPH_Vec3")] float3 gravity, [NativeTypeName("const JPH_CharacterVirtualUpdateSettings *")] JPH_CharacterVirtualUpdateSettings* settings, [NativeTypeName("uint64_t")] ulong collisionLayerMask);
-
-        [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        [return: NativeTypeName("JPH_BodyID")]
-        public static extern uint JPH_BodyInterface_CreateAndAddBody(JPH_BodyInterface* bodyInterface, [NativeTypeName("const JPH_BodyCreationSettings *")] JPH_BodyCreationSettings* settings, JPH_Activation activation);
 
         [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern void JPH_BodyInterface_RemoveAndDestroyBody(JPH_BodyInterface* bodyInterface, [NativeTypeName("JPH_BodyID")] uint bodyID);

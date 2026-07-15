@@ -10,29 +10,6 @@ namespace Jolt.Collider
         public float3 HalfExtents = new float3(1, 1, 1);
         public float ConvexRadius = 0f;
         
-        private Jolt.BoxShape m_Shape;
-        private uint m_BodyId;
-
-        private void OnDestroy()
-        {
-            if (m_Shape.IsCreated)
-            {
-                m_Shape.Destroy();
-                m_Shape = default;
-            }
-        }
-
-        public Shape GetOrCreateShape()
-        {
-            if (!m_Shape.IsCreated)
-            {
-                var scale = transform.localScale;
-                m_Shape = Jolt.BoxShape.Create(math.mul(HalfExtents, float3x3.Scale(scale)), ConvexRadius);
-            }
-
-            return m_Shape.AsShape;
-        }
-        
         public override  void DrawGizmos()
         {
             if (GizmoContext.InSelection(this))

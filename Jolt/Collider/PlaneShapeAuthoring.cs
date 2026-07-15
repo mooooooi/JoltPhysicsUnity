@@ -7,31 +7,6 @@ namespace Jolt.Collider
     public class PlaneShapeAuthoring : MonoBehaviourGizmos, IPhysicsShape
     {
         public float HalfExtends = 1f;
-        private Jolt.PlaneShape m_Shape;
-
-        private void OnDestroy()
-        {
-            if (m_Shape.IsCreated)
-            {
-                m_Shape.Destroy();
-                m_Shape = default;
-            }
-        }
-
-        public unsafe Shape GetOrCreateShape()
-        {
-            var planeSettings = new JPH_Plane
-            {
-                normal = math.up(), distance = 0f
-            };
-
-            var localScale = transform.localScale;
-            var scale = math.min(localScale.x, localScale.z);
-            m_Shape = Jolt.PlaneShape.Create(&planeSettings, null, scale * HalfExtends * 5);
-
-            return m_Shape.AsShape;
-        }
-        
         public override  void DrawGizmos()
         {
             if (GizmoContext.InSelection(this))

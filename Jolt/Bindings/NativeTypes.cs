@@ -28,11 +28,6 @@ namespace Jolt
         public int _unused;
     }
 
-    public unsafe partial struct JPH_Shape
-    {
-        public int _unused;
-    }
-
     public unsafe partial struct JPH_PhysicsSystemState
     {
         public int _unused;
@@ -147,9 +142,23 @@ namespace Jolt
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    public unsafe struct JPH_BodyCreationSettings
+    public struct JPH_ColliderBlob
     {
-        public JPH_Shape* shape;
+        public byte type;
+        public byte flags;
+        public byte reserved0;
+        public byte reserved1;
+        public uint version;
+        public float3 vector;
+        public float scalar0;
+        public float scalar1;
+        public float scalar2;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct JPH_RigidBodyCreation
+    {
+        public JPH_ColliderBlob collider;
         public float3 position;
         public quaternion rotation;
         public float3 linearVelocity;
@@ -165,6 +174,10 @@ namespace Jolt
         public float maxLinearVelocity;
         public float maxAngularVelocity;
         public float gravityFactor;
+        public byte activation;
+        public byte reserved0;
+        public byte reserved1;
+        public byte reserved2;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -183,9 +196,10 @@ namespace Jolt
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    public unsafe struct JPH_CharacterVirtualCreationSettings
+    public struct JPH_CharacterVirtualCreation
     {
-        public JPH_Shape* shape;
+        public float capsuleHalfHeightOfCylinder;
+        public float capsuleRadius;
         public float3 up;
         public float3 shapeOffset;
         public float supportingVolumeConstant;
@@ -203,6 +217,7 @@ namespace Jolt
         public float penetrationRecoverySpeed;
         public uint characterID;
         public ulong userData;
+        public JPH_CharacterVirtualState state;
     }
 
     [StructLayout(LayoutKind.Sequential)]

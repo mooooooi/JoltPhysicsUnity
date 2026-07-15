@@ -11,29 +11,6 @@ namespace Jolt.Collider
         
         public float Radius = 0.5f;
         
-        private Jolt.CylinderShape m_Shape;
-        private uint m_BodyId;
-
-        private void OnDestroy()
-        {
-            if (m_Shape.IsCreated)
-            {
-                m_Shape.Destroy();
-                m_Shape = default;
-            }
-        }
-
-        public Shape GetOrCreateShape()
-        {
-            if (!m_Shape.IsCreated)
-            {
-                var scale3 = (float3) transform.localScale;
-                m_Shape = Jolt.CylinderShape.Create(scale3.y * HalfHeight, math.min(scale3.x, scale3.z) * Radius);
-            }
-
-            return m_Shape.AsShape;
-        }
-        
         public override void DrawGizmos()
         {
             if (GizmoContext.InSelection(this))

@@ -7,85 +7,6 @@ using LowLevel = Jolt.LowLevel;
 
 namespace Jolt
 {
-    [Obsolete("Legacy compatibility shell. New code should use Jolt.LowLevel.Shape.")]
-    public readonly struct ShapeSettings
-    {
-        public readonly IntPtr Ptr;
-        public ShapeSettings(IntPtr ptr) => Ptr = ptr;
-        public unsafe void* ToUnsafePtr() => (void*)Ptr;
-    }
-
-    [Obsolete("Legacy compatibility shell. New code should use Jolt.LowLevel.Shape.")]
-    public readonly struct BoxShape
-    {
-        public bool IsCreated => false;
-        public Shape AsShape => default;
-        public void Destroy() { }
-        public static BoxShape Create(float3 halfExtent, float convexRadius = 0.05f) => default;
-    }
-
-    [Obsolete("Legacy compatibility shell. New code should use Jolt.LowLevel.Shape.")]
-    public readonly struct SphereShape
-    {
-        public bool IsCreated => false;
-        public Shape AsShape => default;
-        public void Destroy() { }
-        public static SphereShape Create(float radius) => default;
-    }
-
-    [Obsolete("Legacy compatibility shell. New code should use Jolt.LowLevel.Shape.")]
-    public readonly struct CylinderShape
-    {
-        public bool IsCreated => false;
-        public Shape AsShape => default;
-        public void Destroy() { }
-        public static CylinderShape Create(float halfHeight, float radius) => default;
-    }
-
-    [Obsolete("Legacy compatibility shell. New code should use Jolt.LowLevel.Shape.")]
-    public readonly struct CapsuleShapeSettings
-    {
-        private readonly float halfHeightOfCylinder;
-        private readonly float radius;
-
-        private CapsuleShapeSettings(float halfHeightOfCylinder, float radius)
-        {
-            this.halfHeightOfCylinder = halfHeightOfCylinder;
-            this.radius = radius;
-        }
-
-        public ShapeSettings AsShapeSettings => default;
-        public static CapsuleShapeSettings Create(float halfHeightOfCylinder, float radius) => new CapsuleShapeSettings(halfHeightOfCylinder, radius);
-        public Shape CreateShape() => default;
-    }
-
-    [Obsolete("Legacy compatibility shell. New code should use Jolt.LowLevel.Shape.")]
-    public readonly struct RotatedTranslatedShapeSettings
-    {
-        private readonly CapsuleShapeSettings capsule;
-
-        private RotatedTranslatedShapeSettings(CapsuleShapeSettings capsule)
-        {
-            this.capsule = capsule;
-        }
-
-        public static unsafe RotatedTranslatedShapeSettings Create(float3 position, quaternion rotation, void* shapeSettings)
-        {
-            return new RotatedTranslatedShapeSettings(default);
-        }
-
-        public Shape CreateShape() => capsule.CreateShape();
-    }
-
-    [Obsolete("Legacy compatibility shell. New code should use Jolt.LowLevel.Shape.")]
-    public readonly struct PlaneShape
-    {
-        public bool IsCreated => false;
-        public Shape AsShape => default;
-        public void Destroy() { }
-        public static unsafe PlaneShape Create(JPH_Plane* plane, void* material, float halfExtent) => default;
-    }
-
     [StructLayout(LayoutKind.Sequential)]
     public unsafe struct JPH_PhysicsSystemSettings
     {
@@ -96,60 +17,6 @@ namespace Jolt
         public void* broadPhaseLayerInterface;
         public void* objectLayerPairFilter;
         public void* objectVsBroadPhaseLayerFilter;
-    }
-
-    [Obsolete("Legacy compatibility shell. New code should use Jolt.LowLevel.BodyCreation.")]
-    public unsafe struct BodyCreationSettings
-    {
-        public JPH_BodyCreationSettings Native;
-
-        public static BodyCreationSettings Create3(
-            void* shape,
-            float3 position,
-            quaternion rotation,
-            JPH_MotionType motionType,
-            uint objectLayer)
-        {
-            return new BodyCreationSettings
-            {
-                Native = new JPH_BodyCreationSettings
-                {
-                    shape = (JPH_Shape*)shape,
-                    position = position,
-                    rotation = rotation,
-                    objectLayer = objectLayer,
-                    motionType = (byte)motionType,
-                    motionQuality = (byte)JPH_MotionQuality.Discrete,
-                    allowSleeping = 1,
-                    linearDamping = 0.05f,
-                    angularDamping = 0.05f,
-                    maxLinearVelocity = 500f,
-                    maxAngularVelocity = 200f,
-                    gravityFactor = 1f,
-                }
-            };
-        }
-
-        public JPH_BodyCreationSettings* ToUnsafePtr() => null;
-    }
-
-    [Obsolete("Legacy compatibility shell. New code should use Jolt.LowLevel.Shape.")]
-    public unsafe partial struct Shape
-    {
-        internal JPH_Shape* Ptr;
-
-        public bool IsCreated => Ptr != null;
-        public Shape AsShape => this;
-        public JPH_Shape* ToUnsafePtr() => Ptr;
-
-        public void Destroy()
-        {
-            if (Ptr != null)
-            {
-                UnsafeBindings.JPH_Shape_Release(Ptr);
-                Ptr = null;
-            }
-        }
     }
 
     [Obsolete("Legacy compatibility shell. New code should use Jolt.LowLevel.BodyId.")]
@@ -177,34 +44,6 @@ namespace Jolt
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    public unsafe struct JPH_CharacterBaseSettings
-    {
-        public float3 up;
-        public JPH_Plane supportingVolume;
-        public float maxSlopeAngle;
-        public JPH_Shape* shape;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    public unsafe struct JPH_CharacterVirtualSettings
-    {
-        public JPH_CharacterBaseSettings @base;
-        public float mass;
-        public float maxStrength;
-        public float3 shapeOffset;
-        public JPH_BackFaceMode backFaceMode;
-        public float predictiveContactDistance;
-        public uint maxCollisionIterations;
-        public uint maxConstraintIterations;
-        public float minTimeRemaining;
-        public float collisionTolerance;
-        public float characterPadding;
-        public uint maxNumHits;
-        public float hitReductionCosMaxAngle;
-        public float penetrationRecoverySpeed;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
     public struct JPH_ExtendedUpdateSettings
     {
         public float3 stickToFloorStepDown;
@@ -221,16 +60,6 @@ namespace Jolt
         internal JPH_CharacterVirtual* Ptr;
 
         public JPH_CharacterVirtual* ToUnsafePtr() => Ptr;
-
-        public static CharacterVirtual Create(
-            JPH_CharacterVirtualSettings* settings,
-            rvec3 position,
-            quaternion rotation,
-            ulong userData,
-            JPH_PhysicsSystem* physicsSystem)
-        {
-            return default;
-        }
 
         public void Destroy() { }
         public void SaveAlignedState(void* builder) { }
@@ -352,7 +181,6 @@ namespace Jolt
         internal JPH_BodyInterface* Ptr;
 
         public JPH_BodyInterface* ToUnsafePtr() => Ptr;
-        public Body CreateBody(JPH_BodyCreationSettings* settings) => default;
         public void AddBody(uint bodyId, JPH_Activation activation) { }
         public void DeactivateBody(uint bodyId) { }
         public void RemoveBody(uint bodyId) { }
@@ -473,39 +301,6 @@ namespace Jolt
         public static void JPH_BodyInterface_RemoveBody(JPH_BodyInterface* bodyInterface, uint bodyId) { }
         public static void JPH_BodyInterface_DestroyBody(JPH_BodyInterface* bodyInterface, uint bodyId) { }
 
-        public static JPH_BodyCreationSettings* JPH_BodyCreationSettings_Create3(
-            JPH_Shape* shape,
-            rvec3* position,
-            quaternion* rotation,
-            JPH_MotionType motionType,
-            uint objectLayer) => null;
-
-        public static void JPH_BodyCreationSettings_Destroy(JPH_BodyCreationSettings* settings) { }
-        public static void JPH_BodyCreationSettings_SetUserData(JPH_BodyCreationSettings* settings, ulong userData) { }
-        public static void JPH_BodyCreationSettings_SetCollisionGroup(JPH_BodyCreationSettings* settings, JPH_CollisionGroup* collisionGroup) { }
-        public static void JPH_BodyCreationSettings_SetIsSensor(JPH_BodyCreationSettings* settings, byte value) { }
-        public static void JPH_BodyCreationSettings_SetCollideKinematicVsNonDynamic(JPH_BodyCreationSettings* settings, byte value) { }
-        public static void JPH_BodyCreationSettings_SetUseManifoldReduction(JPH_BodyCreationSettings* settings, byte value) { }
-        public static void JPH_BodyCreationSettings_SetEnhancedInternalEdgeRemoval(JPH_BodyCreationSettings* settings, byte value) { }
-        public static void JPH_BodyCreationSettings_SetFriction(JPH_BodyCreationSettings* settings, float value) { }
-        public static void JPH_BodyCreationSettings_SetRestitution(JPH_BodyCreationSettings* settings, float value) { }
-        public static void JPH_BodyCreationSettings_SetLinearVelocity(JPH_BodyCreationSettings* settings, float3* value) { }
-        public static void JPH_BodyCreationSettings_SetAngularVelocity(JPH_BodyCreationSettings* settings, float3* value) { }
-        public static void JPH_BodyCreationSettings_SetAllowDynamicOrKinematic(JPH_BodyCreationSettings* settings, byte value) { }
-        public static void JPH_BodyCreationSettings_SetApplyGyroscopicForce(JPH_BodyCreationSettings* settings, byte value) { }
-        public static void JPH_BodyCreationSettings_SetMotionQuality(JPH_BodyCreationSettings* settings, JPH_MotionQuality value) { }
-        public static void JPH_BodyCreationSettings_SetAllowSleeping(JPH_BodyCreationSettings* settings, byte value) { }
-        public static void JPH_BodyCreationSettings_SetLinearDamping(JPH_BodyCreationSettings* settings, float value) { }
-        public static void JPH_BodyCreationSettings_SetAngularDamping(JPH_BodyCreationSettings* settings, float value) { }
-        public static void JPH_BodyCreationSettings_SetMaxLinearVelocity(JPH_BodyCreationSettings* settings, float value) { }
-        public static void JPH_BodyCreationSettings_SetMaxAngularVelocity(JPH_BodyCreationSettings* settings, float value) { }
-        public static void JPH_BodyCreationSettings_SetGravityFactor(JPH_BodyCreationSettings* settings, float value) { }
-        public static void JPH_BodyCreationSettings_SetNumVelocityStepsOverride(JPH_BodyCreationSettings* settings, uint value) { }
-        public static void JPH_BodyCreationSettings_SetNumPositionStepsOverride(JPH_BodyCreationSettings* settings, uint value) { }
-        public static void JPH_BodyCreationSettings_SetOverrideMassProperties(JPH_BodyCreationSettings* settings, JPH_OverrideMassProperties value) { }
-        public static void JPH_BodyCreationSettings_SetInertiaMultiplier(JPH_BodyCreationSettings* settings, float value) { }
-
-        public static JPH_Body* JPH_BodyInterface_CreateBodyWithID(JPH_BodyInterface* bodyInterface, uint bodyId, JPH_BodyCreationSettings* settings) => null;
         public static void JPH_BodyInterface_AddBody(JPH_BodyInterface* bodyInterface, uint bodyId, JPH_Activation activation) { }
         public static void JPH_BodyInterface_SetObjectLayer(JPH_BodyInterface* bodyInterface, uint bodyId, uint objectLayer) { }
         public static void JPH_BodyInterface_SetMotionType(JPH_BodyInterface* bodyInterface, uint bodyId, JPH_MotionType motionType, JPH_Activation activation) { }
@@ -523,7 +318,6 @@ namespace Jolt
             quaternion* rotation,
             float3* linearVelocity,
             float3* angularVelocity) { }
-        public static void JPH_BodyInterface_SetShape(JPH_BodyInterface* bodyInterface, uint bodyId, JPH_Shape* shape, byte updateMassProperties, JPH_Activation activation) { }
         public static void JPH_BodyInterface_GetPosition(JPH_BodyInterface* bodyInterface, uint bodyId, rvec3* position)
         {
             if (position != null)

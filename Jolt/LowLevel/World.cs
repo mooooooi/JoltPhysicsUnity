@@ -98,97 +98,6 @@ namespace Jolt.LowLevel
         }
     }
 
-    public readonly unsafe struct Shape : IDisposable
-    {
-        public readonly JPH_Shape* Ptr;
-
-        public Shape(JPH_Shape* ptr)
-        {
-            Ptr = ptr;
-        }
-
-        public bool IsCreated => Ptr != null;
-
-        public static Shape CreateSphere(float radius)
-        {
-            UnsafeBindings.JPH_Init();
-            return new Shape(UnsafeBindings.JPH_Shape_CreateSphere(radius));
-        }
-
-        public static Shape CreateBox(float3 halfExtent, float convexRadius = 0.05f)
-        {
-            UnsafeBindings.JPH_Init();
-            return new Shape(UnsafeBindings.JPH_Shape_CreateBox(halfExtent, convexRadius));
-        }
-
-        public static Shape CreateCapsule(float halfHeightOfCylinder, float radius)
-        {
-            UnsafeBindings.JPH_Init();
-            return new Shape(UnsafeBindings.JPH_Shape_CreateCapsule(halfHeightOfCylinder, radius));
-        }
-
-        public static Shape CreateCylinder(float halfHeight, float radius, float convexRadius = 0.05f)
-        {
-            UnsafeBindings.JPH_Init();
-            return new Shape(UnsafeBindings.JPH_Shape_CreateCylinder(halfHeight, radius, convexRadius));
-        }
-
-        public static Shape CreatePlane(float3 normal, float distance, float halfExtent)
-        {
-            UnsafeBindings.JPH_Init();
-            return new Shape(UnsafeBindings.JPH_Shape_CreatePlane(normal, distance, halfExtent));
-        }
-
-        public void AddRef()
-        {
-            UnsafeBindings.JPH_Shape_AddRef(Ptr);
-        }
-
-        public void Dispose()
-        {
-            UnsafeBindings.JPH_Shape_Release(Ptr);
-        }
-    }
-
-    public struct BodyCreation
-    {
-        public Shape Shape;
-        public float3 Position;
-        public quaternion Rotation;
-        public float3 LinearVelocity;
-        public float3 AngularVelocity;
-        public ulong UserData;
-        public uint ObjectLayer;
-        public MotionType MotionType;
-        public MotionQuality MotionQuality;
-        public bool IsSensor;
-        public bool AllowSleeping;
-        public float LinearDamping;
-        public float AngularDamping;
-        public float MaxLinearVelocity;
-        public float MaxAngularVelocity;
-        public float GravityFactor;
-
-        public static BodyCreation Dynamic(Shape shape, float3 position, quaternion rotation, uint objectLayer = 0)
-        {
-            return new BodyCreation
-            {
-                Shape = shape,
-                Position = position,
-                Rotation = rotation,
-                ObjectLayer = objectLayer,
-                MotionType = MotionType.Dynamic,
-                MotionQuality = MotionQuality.Discrete,
-                AllowSleeping = true,
-                LinearDamping = 0.05f,
-                AngularDamping = 0.05f,
-                MaxLinearVelocity = 500.0f,
-                MaxAngularVelocity = 200.0f,
-                GravityFactor = 1.0f,
-            };
-        }
-    }
-
     public struct ConstraintCreation
     {
         public ConstraintKind Kind;
@@ -279,21 +188,6 @@ namespace Jolt.LowLevel
         public bool IsCreated => physicsSystem != null;
         public JPH_PhysicsSystem* PhysicsSystem => physicsSystem;
         public JPH_BodyInterface* BodyInterface => bodyInterface;
-
-        public BodyId CreateAndAddBody(in BodyCreation creation, bool activate)
-        {
-            if (disposed || physicsSystem == null || bodyInterface == null || !creation.Shape.IsCreated)
-            {
-                return BodyId.Invalid;
-            }
-
-            var settings = ToNative(creation);
-            var bodyId = UnsafeBindings.JPH_BodyInterface_CreateAndAddBody(
-                bodyInterface,
-                &settings,
-                activate ? JPH_Activation.Activate : JPH_Activation.DontActivate);
-            return new BodyId(bodyId);
-        }
 
         public void RemoveAndDestroyBody(BodyId bodyId)
         {
@@ -683,29 +577,6 @@ namespace Jolt.LowLevel
             }
 
             UnsafeBindings.JPH_Shutdown();
-        }
-
-        private static JPH_BodyCreationSettings ToNative(in BodyCreation creation)
-        {
-            return new JPH_BodyCreationSettings
-            {
-                shape = creation.Shape.Ptr,
-                position = creation.Position,
-                rotation = creation.Rotation,
-                linearVelocity = creation.LinearVelocity,
-                angularVelocity = creation.AngularVelocity,
-                userData = creation.UserData,
-                objectLayer = creation.ObjectLayer,
-                motionType = (byte)creation.MotionType,
-                motionQuality = (byte)creation.MotionQuality,
-                isSensor = creation.IsSensor ? (byte)1 : (byte)0,
-                allowSleeping = creation.AllowSleeping ? (byte)1 : (byte)0,
-                linearDamping = creation.LinearDamping,
-                angularDamping = creation.AngularDamping,
-                maxLinearVelocity = creation.MaxLinearVelocity,
-                maxAngularVelocity = creation.MaxAngularVelocity,
-                gravityFactor = creation.GravityFactor,
-            };
         }
 
         private static JPH_ConstraintCreationSettings ToNative(in ConstraintCreation creation)
