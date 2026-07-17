@@ -63,6 +63,7 @@ namespace Jolt
         private DebugRenderer m_DebugRenderer;
         private JPH_DrawSettings m_DrawSettings;
         private BodyDrawFilter m_BodyFilter;
+        private PhysicsSystem m_PhysicsSystem;
         
         private unsafe void Awake()
         {
@@ -76,6 +77,16 @@ namespace Jolt
         public void NextFrame()
         {
             m_DebugRenderer.NextFrame();
+        }
+
+        public void BindPhysicsSystem(PhysicsSystem physicsSystem)
+        {
+            m_PhysicsSystem = physicsSystem;
+        }
+
+        public void UnbindPhysicsSystem()
+        {
+            m_PhysicsSystem = default;
         }
 
         public unsafe void Render(PhysicsSystem physicsSystem)
@@ -102,7 +113,7 @@ namespace Jolt
 
         public void LateUpdate()
         {
-            Render(JoltPhysicsCore.Main.PhysicsSystem);
+            Render(m_PhysicsSystem);
         }
 
         private void OnDestroy()
