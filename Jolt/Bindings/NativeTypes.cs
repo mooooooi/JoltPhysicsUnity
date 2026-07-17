@@ -43,6 +43,43 @@ namespace Jolt
         public int _unused;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct JPH_DODBuffer
+    {
+        public void* data;
+        public uint stride;
+        public uint count;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct JPH_WorldSyncIn
+    {
+        public JPH_DODBuffer rigidBodies;
+        public JPH_DODBuffer motionDatas;
+        public JPH_DODBuffer motionVelocities;
+        public JPH_DODBuffer bodyEntries;
+        public JPH_DODBuffer joints;
+        public JPH_DODBuffer jointEntries;
+        public JPH_DODBuffer bodyHandlesByIndex;
+        public JPH_DODBuffer jointHandlesByEntry;
+        public uint dynamicBodyStartIndex;
+        public uint dynamicBodyCount;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct JPH_WorldSyncOut
+    {
+        public JPH_DODBuffer bodyHandlesByIndex;
+        public JPH_DODBuffer motionDatas;
+        public JPH_DODBuffer motionVelocities;
+        public JPH_DODBuffer outputMotionDatas;
+        public JPH_DODBuffer outputMotionVelocities;
+        public uint dynamicBodyStartIndex;
+        public uint bodyStartIndex;
+        public uint outputStartIndex;
+        public uint count;
+    }
+
     public unsafe partial struct JPH_BroadPhaseLayerFilter
     {
         public int _unused;
@@ -151,31 +188,6 @@ namespace Jolt
         public ulong payload0;
         public ulong payload1;
         public ulong payload2;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct JPH_RigidBodyCreation
-    {
-        public JPH_ColliderBlob collider;
-        public float3 position;
-        public quaternion rotation;
-        public float3 linearVelocity;
-        public float3 angularVelocity;
-        public ulong userData;
-        public uint objectLayer;
-        public byte motionType;
-        public byte motionQuality;
-        public byte isSensor;
-        public byte allowSleeping;
-        public float linearDamping;
-        public float angularDamping;
-        public float maxLinearVelocity;
-        public float maxAngularVelocity;
-        public float gravityFactor;
-        public byte activation;
-        public byte reserved0;
-        public byte reserved1;
-        public byte reserved2;
     }
 
     [StructLayout(LayoutKind.Sequential)]

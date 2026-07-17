@@ -32,12 +32,18 @@ namespace Jolt
         [return: NativeTypeName("uint8_t")]
         public static extern byte JPH_PhysicsSystem_SyncWorldIn(
             JPH_PhysicsSystem* system,
-            [NativeTypeName("const JPH_RigidBodyCreation *")] JPH_RigidBodyCreation* rigidBodies,
-            [NativeTypeName("uint32_t")] uint rigidBodyCount,
-            [NativeTypeName("JPH_BodyID *")] uint* rigidBodyIDs,
-            [NativeTypeName("const JPH_CharacterVirtualCreation *")] JPH_CharacterVirtualCreation* characters,
-            [NativeTypeName("uint32_t")] uint characterCount,
-            JPH_CharacterVirtual** characterHandles);
+            [NativeTypeName("const JPH_WorldSyncIn *")] JPH_WorldSyncIn* sync);
+
+        [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("uint8_t")]
+        public static extern byte JPH_PhysicsSystem_SyncWorldOut(
+            JPH_PhysicsSystem* system,
+            [NativeTypeName("const JPH_WorldSyncOut *")] JPH_WorldSyncOut* sync);
+
+        [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern JPH_CharacterVirtual* JPH_PhysicsSystem_CreateCharacterVirtual(
+            JPH_PhysicsSystem* system,
+            [NativeTypeName("const JPH_CharacterVirtualCreation *")] JPH_CharacterVirtualCreation* creation);
 
         [DllImport("joltcd", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern void JPH_CharacterVirtual_Destroy(JPH_CharacterVirtual* character);
