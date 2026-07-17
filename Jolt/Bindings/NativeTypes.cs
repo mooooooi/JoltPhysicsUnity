@@ -146,13 +146,11 @@ namespace Jolt
     {
         public byte type;
         public byte flags;
-        public byte reserved0;
-        public byte reserved1;
+        public ushort payloadSize;
         public uint version;
-        public float3 vector;
-        public float scalar0;
-        public float scalar1;
-        public float scalar2;
+        public ulong payload0;
+        public ulong payload1;
+        public ulong payload2;
     }
 
     [StructLayout(LayoutKind.Sequential)]
