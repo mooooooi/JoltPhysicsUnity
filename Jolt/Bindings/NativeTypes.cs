@@ -33,14 +33,46 @@ namespace Jolt
         public int _unused;
     }
 
-    public unsafe partial struct JPH_StateRecorderFilter
+    public unsafe partial struct JPH_Constraint
     {
         public int _unused;
     }
 
-    public unsafe partial struct JPH_Constraint
+    [System.Flags]
+    public enum JPH_DebugDrawBodyFlags : uint
     {
-        public int _unused;
+        None = 0,
+        Shape = 1u << 0,
+        BoundingBox = 1u << 1,
+        CenterOfMassTransform = 1u << 2,
+        WorldTransform = 1u << 3,
+        Velocity = 1u << 4,
+    }
+
+    public enum JPH_DebugDrawShapeColor : uint
+    {
+        Instance = 0,
+        ShapeType = 1,
+        MotionType = 2,
+        Sleep = 3,
+        Island = 4,
+        Material = 5,
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct JPH_DebugDrawSettings
+    {
+        public JPH_DebugDrawBodyFlags flags;
+        public uint shapeColor;
+        public float3 cameraPosition;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct JPH_DebugDrawLine
+    {
+        public float3 from;
+        public float3 to;
+        public uint color;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -95,12 +127,20 @@ namespace Jolt
         public int _unused;
     }
 
-    public unsafe partial struct JPH_ShapeFilter
+    [StructLayout(LayoutKind.Sequential)]
+    public struct JPH_ObjectLayerFilter_Procs
     {
-        public int _unused;
+        public System.IntPtr ShouldCollide;
     }
 
-    public unsafe partial struct JPH_BlobBuilder
+    [StructLayout(LayoutKind.Sequential)]
+    public struct JPH_BodyFilter_Procs
+    {
+        public System.IntPtr ShouldCollide;
+        public System.IntPtr ShouldCollideLocked;
+    }
+
+    public unsafe partial struct JPH_ShapeFilter
     {
         public int _unused;
     }

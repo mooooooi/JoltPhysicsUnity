@@ -6,8 +6,16 @@ This package provides __work-in-progress__ bindings for [Jolt Physics v5.3.0](ht
 specifically for Unity. It uses the Unity.Mathematics package for all numerics and Unity.Collections
 package for unmanaged collections.
 
-The C# API is almost entirely implemented on unmanaged structs, making it suitable for use from
-Unity Jobs and Burst compiled code.
+The active runtime surface is the minimal `JPH_*` glue in `Jolt/Bindings`, plus `Jolt.LowLevel.World`.
+It exposes raw unmanaged handles for Unity Jobs/Burst and does not ship the former managed
+`LegacyCompat` façade. Unsupported full-joltc APIs fail at compile time instead of silently executing
+no-op compatibility shells. Native body diagnostics are exposed as a bounded
+`JPH_PhysicsSystem_DrawDebugLines` wireframe buffer instead of reverse-P/Invoke renderer callbacks.
+The checked-in native runtime currently targets macOS universal
+(`x86_64` + `arm64`); the version-controlled `libjoltc.dylib` is the GitHub Actions
+Distribution/Release artifact. The shared deploy script can temporarily install a Debug build for
+local investigation, but Release must be restored before committing. Other platforms must build the
+same minimal glue from the canonical `Jolt.NET/native/jolt_glue.*` source before enabling the package there.
 
 ### Installation
 

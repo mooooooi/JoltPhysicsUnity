@@ -1,4 +1,5 @@
 using Unity.Burst;
+using Unity.Collections.LowLevel.Unsafe;
 using Unity.Jobs;
 
 namespace Jolt.Job
@@ -6,13 +7,13 @@ namespace Jolt.Job
     [BurstCompile]
     public unsafe struct UpdatePhysicsSystemJob : IJob
     {
-        public PhysicsSystem physics;
-        public float deltaTime;
-        public JobSystem job;
+        [NativeDisableUnsafePtrRestriction]
+        public JPH_PhysicsSystem* PhysicsSystem;
+        public float DeltaTime;
 
         public void Execute()
         {
-            physics.Update(deltaTime, 1, job.ToUnsafePtr());
+            UnsafeBindings.JPH_PhysicsSystem_Update(PhysicsSystem, DeltaTime, 1);
         }
     }
 }

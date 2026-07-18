@@ -1,5 +1,0 @@
----
-triple:          'arm64-apple-darwin'
-binary-path:     '/Users/himimi/Documents/GitHub/Jolt.NET/build_osx_Debug/lib/libjoltcd.dylib'
-relocations:     []
-...
