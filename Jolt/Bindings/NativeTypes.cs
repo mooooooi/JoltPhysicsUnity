@@ -92,7 +92,6 @@ namespace Jolt
         public JPH_DODBuffer bodyEntries;
         public JPH_DODBuffer joints;
         public JPH_DODBuffer jointEntries;
-        public JPH_DODBuffer bodyHandlesByIndex;
         public JPH_DODBuffer jointHandlesByEntry;
         public uint dynamicBodyStartIndex;
         public uint dynamicBodyCount;
@@ -101,7 +100,7 @@ namespace Jolt
     [StructLayout(LayoutKind.Sequential)]
     public unsafe struct JPH_WorldSyncOut
     {
-        public JPH_DODBuffer bodyHandlesByIndex;
+        public JPH_DODBuffer rigidBodies;
         public JPH_DODBuffer motionDatas;
         public JPH_DODBuffer motionVelocities;
         public JPH_DODBuffer outputMotionDatas;
@@ -110,6 +109,14 @@ namespace Jolt
         public uint bodyStartIndex;
         public uint outputStartIndex;
         public uint count;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct JPH_EntityRayCastResult
+    {
+        public ulong entityID;
+        public float fraction;
+        public uint subShapeID2;
     }
 
     public unsafe partial struct JPH_BroadPhaseLayerFilter

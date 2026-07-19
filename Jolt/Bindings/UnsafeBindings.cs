@@ -59,6 +59,73 @@ namespace Jolt
             [NativeTypeName("const JPH_WorldSyncOut *")] JPH_WorldSyncOut* sync);
 
         [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        public static extern void JPH_PhysicsSystem_ClearBodies(JPH_PhysicsSystem* system);
+
+        [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("uint8_t")]
+        public static extern byte JPH_PhysicsSystem_HasBody(JPH_PhysicsSystem* system, [NativeTypeName("uint64_t")] ulong entityID);
+
+        [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("uint8_t")]
+        public static extern byte JPH_PhysicsSystem_RemoveAndDestroyBody(JPH_PhysicsSystem* system, [NativeTypeName("uint64_t")] ulong entityID);
+
+        [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("uint8_t")]
+        public static extern byte JPH_PhysicsSystem_SetBodyPositionAndRotation(JPH_PhysicsSystem* system, [NativeTypeName("uint64_t")] ulong entityID, float3 position, quaternion rotation, JPH_Activation activation);
+
+        [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("uint8_t")]
+        public static extern byte JPH_PhysicsSystem_GetBodyPositionAndRotation(JPH_PhysicsSystem* system, [NativeTypeName("uint64_t")] ulong entityID, float3* position, quaternion* rotation);
+
+        [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("uint8_t")]
+        public static extern byte JPH_PhysicsSystem_SetBodyLinearAndAngularVelocity(JPH_PhysicsSystem* system, [NativeTypeName("uint64_t")] ulong entityID, float3 linearVelocity, float3 angularVelocity);
+
+        [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("uint8_t")]
+        public static extern byte JPH_PhysicsSystem_GetBodyLinearAndAngularVelocity(JPH_PhysicsSystem* system, [NativeTypeName("uint64_t")] ulong entityID, float3* linearVelocity, float3* angularVelocity);
+
+        [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("uint8_t")]
+        public static extern byte JPH_PhysicsSystem_AddBodyForce(JPH_PhysicsSystem* system, [NativeTypeName("uint64_t")] ulong entityID, float3* force);
+
+        [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("uint8_t")]
+        public static extern byte JPH_PhysicsSystem_AddBodyTorque(JPH_PhysicsSystem* system, [NativeTypeName("uint64_t")] ulong entityID, float3* torque);
+
+        [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("uint8_t")]
+        public static extern byte JPH_PhysicsSystem_AddBodyForceAndTorque(JPH_PhysicsSystem* system, [NativeTypeName("uint64_t")] ulong entityID, float3* force, float3* torque);
+
+        [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("uint8_t")]
+        public static extern byte JPH_PhysicsSystem_AddBodyImpulse(JPH_PhysicsSystem* system, [NativeTypeName("uint64_t")] ulong entityID, float3* impulse);
+
+        [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("uint8_t")]
+        public static extern byte JPH_PhysicsSystem_ActivateBody(JPH_PhysicsSystem* system, [NativeTypeName("uint64_t")] ulong entityID);
+
+        [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("uint8_t")]
+        public static extern byte JPH_PhysicsSystem_DeactivateBody(JPH_PhysicsSystem* system, [NativeTypeName("uint64_t")] ulong entityID);
+
+        [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("uint8_t")]
+        public static extern byte JPH_PhysicsSystem_IsBodyActive(JPH_PhysicsSystem* system, [NativeTypeName("uint64_t")] ulong entityID);
+
+        [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("uint8_t")]
+        public static extern byte JPH_PhysicsSystem_CastRayEntity(JPH_PhysicsSystem* system, JPH_RayCast* ray, JPH_EntityRayCastResult* hit);
+
+        [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("uint8_t")]
+        public static extern byte JPH_PhysicsSystem_CastRayEntityFiltered(JPH_PhysicsSystem* system, JPH_RayCast* ray, JPH_EntityRayCastResult* hit, JPH_ObjectLayerFilter* objectLayerFilter, JPH_BodyFilter* bodyFilter);
+
+        [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("uint32_t")]
+        public static extern uint JPH_PhysicsSystem_CastRayAllEntities(JPH_PhysicsSystem* system, JPH_RayCast* ray, JPH_EntityRayCastResult* hits, [NativeTypeName("uint32_t")] uint maxHits);
+
+        [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern JPH_CharacterVirtual* JPH_PhysicsSystem_CreateCharacterVirtual(
             JPH_PhysicsSystem* system,
             [NativeTypeName("const JPH_CharacterVirtualCreation *")] JPH_CharacterVirtualCreation* creation);
