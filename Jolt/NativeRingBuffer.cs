@@ -11,7 +11,7 @@ using UnityEngine.Assertions;
 namespace Jolt
 {
     [NativeContainer]
-    [DebuggerTypeProxy(typeof(DebuggerProxy<JPH_PhysicsSystemState>))]
+    [DebuggerTypeProxy(typeof(DebuggerProxy<byte>))]
     public unsafe struct NativeRingBuffer : IDisposable
     {
 #if ENABLE_UNITY_COLLECTIONS_CHECKS

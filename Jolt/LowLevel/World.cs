@@ -7,16 +7,16 @@ namespace Jolt.LowLevel
 {
     public readonly struct BodyId : IEquatable<BodyId>
     {
-        public static readonly BodyId Invalid = new BodyId(0xffffffffu);
+        public static readonly BodyId Invalid = default;
 
-        public readonly uint Value;
+        public readonly ulong Value;
 
-        public BodyId(uint value)
+        public BodyId(ulong value)
         {
             Value = value;
         }
 
-        public bool IsValid => Value != Invalid.Value;
+        public bool IsValid => Value != 0;
 
         public bool Equals(BodyId other)
         {
@@ -30,7 +30,7 @@ namespace Jolt.LowLevel
 
         public override int GetHashCode()
         {
-            return (int)Value;
+            return Value.GetHashCode();
         }
 
         public override string ToString()
@@ -64,38 +64,17 @@ namespace Jolt.LowLevel
         WorldSpace = 1,
     }
 
-    public readonly unsafe struct ConstraintId : IEquatable<ConstraintId>
+    public readonly struct ConstraintId : IEquatable<ConstraintId>
     {
         public static readonly ConstraintId Invalid = default;
+        public readonly ulong Value;
 
-        public readonly JPH_Constraint* Ptr;
-
-        public ConstraintId(JPH_Constraint* ptr)
-        {
-            Ptr = ptr;
-        }
-
-        public bool IsValid => Ptr != null;
-
-        public bool Equals(ConstraintId other)
-        {
-            return Ptr == other.Ptr;
-        }
-
-        public override bool Equals(object obj)
-        {
-            return obj is ConstraintId other && Equals(other);
-        }
-
-        public override int GetHashCode()
-        {
-            return ((IntPtr)Ptr).GetHashCode();
-        }
-
-        public override string ToString()
-        {
-            return IsValid ? ((IntPtr)Ptr).ToString() : "ConstraintId.Invalid";
-        }
+        public ConstraintId(ulong value) => Value = value;
+        public bool IsValid => Value != 0;
+        public bool Equals(ConstraintId other) => Value == other.Value;
+        public override bool Equals(object obj) => obj is ConstraintId other && Equals(other);
+        public override int GetHashCode() => Value.GetHashCode();
+        public override string ToString() => IsValid ? Value.ToString() : "ConstraintId.Invalid";
     }
 
     public struct ConstraintCreation
@@ -168,7 +147,6 @@ namespace Jolt.LowLevel
     public unsafe sealed class World : IDisposable
     {
         private JPH_PhysicsSystem* physicsSystem;
-        private JPH_BodyInterface* bodyInterface;
         private static bool s_CastRayAllUnavailable;
         private bool disposed;
 
@@ -182,32 +160,30 @@ namespace Jolt.LowLevel
                 throw new InvalidOperationException("Failed to create Jolt physics system.");
             }
 
-            bodyInterface = UnsafeBindings.JPH_PhysicsSystem_GetBodyInterface(physicsSystem);
         }
 
         public bool IsCreated => physicsSystem != null;
-        public JPH_PhysicsSystem* PhysicsSystem => physicsSystem;
-        public JPH_BodyInterface* BodyInterface => bodyInterface;
+        internal JPH_PhysicsSystem* PhysicsSystem => physicsSystem;
 
         public void RemoveAndDestroyBody(BodyId bodyId)
         {
-            if (bodyInterface == null || !bodyId.IsValid)
+            if (physicsSystem == null || !bodyId.IsValid)
             {
                 return;
             }
 
-            UnsafeBindings.JPH_BodyInterface_RemoveAndDestroyBody(bodyInterface, bodyId.Value);
+            UnsafeBindings.JPH_PhysicsSystem_RemoveAndDestroyBody(physicsSystem, bodyId.Value);
         }
 
         public bool SetPositionAndRotation(BodyId bodyId, float3 position, quaternion rotation, bool activate)
         {
-            if (bodyInterface == null || !bodyId.IsValid)
+            if (physicsSystem == null || !bodyId.IsValid)
             {
                 return false;
             }
 
-            return UnsafeBindings.JPH_BodyInterface_SetPositionAndRotation(
-                bodyInterface,
+            return UnsafeBindings.JPH_PhysicsSystem_SetBodyPositionAndRotation(
+                physicsSystem,
                 bodyId.Value,
                 position,
                 rotation,
@@ -219,7 +195,7 @@ namespace Jolt.LowLevel
             position = default;
             rotation = quaternion.identity;
 
-            if (bodyInterface == null || !bodyId.IsValid)
+            if (physicsSystem == null || !bodyId.IsValid)
             {
                 return false;
             }
@@ -227,8 +203,8 @@ namespace Jolt.LowLevel
             fixed (float3* positionPtr = &position)
             fixed (quaternion* rotationPtr = &rotation)
             {
-                return UnsafeBindings.JPH_BodyInterface_GetPositionAndRotation(
-                    bodyInterface,
+                return UnsafeBindings.JPH_PhysicsSystem_GetBodyPositionAndRotation(
+                    physicsSystem,
                     bodyId.Value,
                     positionPtr,
                     rotationPtr) != 0;
@@ -237,13 +213,13 @@ namespace Jolt.LowLevel
 
         public bool SetVelocity(BodyId bodyId, float3 linearVelocity, float3 angularVelocity)
         {
-            if (bodyInterface == null || !bodyId.IsValid)
+            if (physicsSystem == null || !bodyId.IsValid)
             {
                 return false;
             }
 
-            return UnsafeBindings.JPH_BodyInterface_SetLinearAndAngularVelocity(
-                bodyInterface,
+            return UnsafeBindings.JPH_PhysicsSystem_SetBodyLinearAndAngularVelocity(
+                physicsSystem,
                 bodyId.Value,
                 linearVelocity,
                 angularVelocity) != 0;
@@ -254,7 +230,7 @@ namespace Jolt.LowLevel
             linearVelocity = default;
             angularVelocity = default;
 
-            if (bodyInterface == null || !bodyId.IsValid)
+            if (physicsSystem == null || !bodyId.IsValid)
             {
                 return false;
             }
@@ -262,8 +238,8 @@ namespace Jolt.LowLevel
             fixed (float3* linearPtr = &linearVelocity)
             fixed (float3* angularPtr = &angularVelocity)
             {
-                return UnsafeBindings.JPH_BodyInterface_GetLinearAndAngularVelocity(
-                    bodyInterface,
+                return UnsafeBindings.JPH_PhysicsSystem_GetBodyLinearAndAngularVelocity(
+                    physicsSystem,
                     bodyId.Value,
                     linearPtr,
                     angularPtr) != 0;
@@ -272,14 +248,14 @@ namespace Jolt.LowLevel
 
         public bool AddForce(BodyId bodyId, float3 force)
         {
-            if (bodyInterface == null || !bodyId.IsValid)
+            if (physicsSystem == null || !bodyId.IsValid)
             {
                 return false;
             }
 
             try
             {
-                UnsafeBindings.JPH_BodyInterface_AddForce(bodyInterface, bodyId.Value, &force);
+                UnsafeBindings.JPH_PhysicsSystem_AddBodyForce(physicsSystem, bodyId.Value, &force);
                 return true;
             }
             catch (EntryPointNotFoundException)
@@ -290,14 +266,14 @@ namespace Jolt.LowLevel
 
         public bool AddTorque(BodyId bodyId, float3 torque)
         {
-            if (bodyInterface == null || !bodyId.IsValid)
+            if (physicsSystem == null || !bodyId.IsValid)
             {
                 return false;
             }
 
             try
             {
-                UnsafeBindings.JPH_BodyInterface_AddTorque(bodyInterface, bodyId.Value, &torque);
+                UnsafeBindings.JPH_PhysicsSystem_AddBodyTorque(physicsSystem, bodyId.Value, &torque);
                 return true;
             }
             catch (EntryPointNotFoundException)
@@ -308,14 +284,14 @@ namespace Jolt.LowLevel
 
         public bool AddForceAndTorque(BodyId bodyId, float3 force, float3 torque)
         {
-            if (bodyInterface == null || !bodyId.IsValid)
+            if (physicsSystem == null || !bodyId.IsValid)
             {
                 return false;
             }
 
             try
             {
-                UnsafeBindings.JPH_BodyInterface_AddForceAndTorque(bodyInterface, bodyId.Value, &force, &torque);
+                UnsafeBindings.JPH_PhysicsSystem_AddBodyForceAndTorque(physicsSystem, bodyId.Value, &force, &torque);
                 return true;
             }
             catch (EntryPointNotFoundException)
@@ -326,14 +302,14 @@ namespace Jolt.LowLevel
 
         public bool AddImpulse(BodyId bodyId, float3 impulse)
         {
-            if (bodyInterface == null || !bodyId.IsValid)
+            if (physicsSystem == null || !bodyId.IsValid)
             {
                 return false;
             }
 
             try
             {
-                UnsafeBindings.JPH_BodyInterface_AddImpulse(bodyInterface, bodyId.Value, &impulse);
+                UnsafeBindings.JPH_PhysicsSystem_AddBodyImpulse(physicsSystem, bodyId.Value, &impulse);
                 return true;
             }
             catch (EntryPointNotFoundException)
@@ -344,14 +320,14 @@ namespace Jolt.LowLevel
 
         public bool Activate(BodyId bodyId)
         {
-            if (bodyInterface == null || !bodyId.IsValid)
+            if (physicsSystem == null || !bodyId.IsValid)
             {
                 return false;
             }
 
             try
             {
-                UnsafeBindings.JPH_BodyInterface_ActivateBody(bodyInterface, bodyId.Value);
+                UnsafeBindings.JPH_PhysicsSystem_ActivateBody(physicsSystem, bodyId.Value);
                 return true;
             }
             catch (EntryPointNotFoundException)
@@ -362,14 +338,14 @@ namespace Jolt.LowLevel
 
         public bool Deactivate(BodyId bodyId)
         {
-            if (bodyInterface == null || !bodyId.IsValid)
+            if (physicsSystem == null || !bodyId.IsValid)
             {
                 return false;
             }
 
             try
             {
-                UnsafeBindings.JPH_BodyInterface_DeactivateBody(bodyInterface, bodyId.Value);
+                UnsafeBindings.JPH_PhysicsSystem_DeactivateBody(physicsSystem, bodyId.Value);
                 return true;
             }
             catch (EntryPointNotFoundException)
@@ -380,24 +356,9 @@ namespace Jolt.LowLevel
 
         public bool IsActive(BodyId bodyId)
         {
-            return bodyInterface != null &&
+            return physicsSystem != null &&
                    bodyId.IsValid &&
-                   UnsafeBindings.JPH_BodyInterface_IsActive(bodyInterface, bodyId.Value) != 0;
-        }
-
-        public ConstraintId CreateAndAddConstraint(BodyId bodyId1, BodyId bodyId2, in ConstraintCreation creation)
-        {
-            if (physicsSystem == null || !bodyId1.IsValid || !bodyId2.IsValid || bodyId1.Equals(bodyId2))
-            {
-                return ConstraintId.Invalid;
-            }
-
-            var settings = ToNative(creation);
-            return new ConstraintId(UnsafeBindings.JPH_PhysicsSystem_CreateAndAddConstraint(
-                physicsSystem,
-                bodyId1.Value,
-                bodyId2.Value,
-                &settings));
+                   UnsafeBindings.JPH_PhysicsSystem_IsBodyActive(physicsSystem, bodyId.Value) != 0;
         }
 
         public bool RemoveAndDestroyConstraint(ConstraintId constraintId)
@@ -407,7 +368,8 @@ namespace Jolt.LowLevel
                 return false;
             }
 
-            return UnsafeBindings.JPH_PhysicsSystem_RemoveAndDestroyConstraint(physicsSystem, constraintId.Ptr) != 0;
+            return UnsafeBindings.JPH_PhysicsSystem_RemoveAndDestroyConstraintByEntity(
+                physicsSystem, constraintId.Value) != 0;
         }
 
         public uint Step(float deltaTime, int collisionSteps)
@@ -433,37 +395,25 @@ namespace Jolt.LowLevel
                 return false;
             }
 
-            var query = UnsafeBindings.JPH_PhysicsSystem_GetNarrowPhaseQueryNoLock(physicsSystem);
-            if (query == null)
-            {
-                return false;
-            }
-
             var ray = new JPH_RayCast
             {
                 origin = input.Origin,
                 direction = input.Direction,
             };
-            var nativeHit = new JPH_RayCastResult { fraction = 1.0f };
+            var nativeHit = new JPH_EntityRayCastResult { fraction = 1.0f };
 
-            if (UnsafeBindings.JPH_NarrowPhaseQuery_CastRay(query, &ray, &nativeHit) == 0)
+            if (UnsafeBindings.JPH_PhysicsSystem_CastRayEntity(physicsSystem, &ray, &nativeHit) == 0)
             {
                 return false;
             }
 
-            hit = new RaycastHit(new BodyId(nativeHit.bodyID), nativeHit.fraction, nativeHit.subShapeID2);
+            hit = new RaycastHit(new BodyId(nativeHit.entityID), nativeHit.fraction, nativeHit.subShapeID2);
             return true;
         }
 
         public int CastRayAll(in RaycastInput input, NativeList<RaycastHit> hits)
         {
             if (!hits.IsCreated || physicsSystem == null)
-            {
-                return 0;
-            }
-
-            var query = UnsafeBindings.JPH_PhysicsSystem_GetNarrowPhaseQueryNoLock(physicsSystem);
-            if (query == null)
             {
                 return 0;
             }
@@ -482,7 +432,7 @@ namespace Jolt.LowLevel
             uint hitCount;
             try
             {
-                hitCount = UnsafeBindings.JPH_NarrowPhaseQuery_CastRayAll(query, &ray, null, 0);
+                hitCount = UnsafeBindings.JPH_PhysicsSystem_CastRayAllEntities(physicsSystem, &ray, null, 0);
             }
             catch (EntryPointNotFoundException)
             {
@@ -495,18 +445,18 @@ namespace Jolt.LowLevel
                 return 0;
             }
 
-            using var nativeHits = new NativeArray<JPH_RayCastResult>((int)hitCount, Allocator.Temp);
-            var writtenCount = UnsafeBindings.JPH_NarrowPhaseQuery_CastRayAll(
-                query,
+            using var nativeHits = new NativeArray<JPH_EntityRayCastResult>((int)hitCount, Allocator.Temp);
+            var writtenCount = UnsafeBindings.JPH_PhysicsSystem_CastRayAllEntities(
+                physicsSystem,
                 &ray,
-                (JPH_RayCastResult*)nativeHits.GetUnsafePtr(),
+                (JPH_EntityRayCastResult*)nativeHits.GetUnsafePtr(),
                 hitCount);
 
             var count = (int)writtenCount;
             for (var i = 0; i < count; i++)
             {
                 var nativeHit = nativeHits[i];
-                hits.Add(new RaycastHit(new BodyId(nativeHit.bodyID), nativeHit.fraction, nativeHit.subShapeID2));
+                hits.Add(new RaycastHit(new BodyId(nativeHit.entityID), nativeHit.fraction, nativeHit.subShapeID2));
             }
 
             return count;
@@ -573,7 +523,6 @@ namespace Jolt.LowLevel
             {
                 UnsafeBindings.JPH_PhysicsSystem_Destroy(physicsSystem);
                 physicsSystem = null;
-                bodyInterface = null;
             }
 
             UnsafeBindings.JPH_Shutdown();

@@ -69,9 +69,12 @@ namespace Jolt
         public void EnsureSlotCapacity(int value)
         {
             value = CollectionHelper.Align(value, BlobUtility.Alignment);
-            var newBufferLength = math.ceilpow2(value * m_Capacity);
-            if (newBufferLength <= m_BufferLength) return;
+            if (value <= m_SlotCapacity) return;
 
+            // The power-of-two allocation can have spare total bytes, but those bytes do not
+            // increase the stride of each slot. A larger value must always re-stride the buffer;
+            // otherwise writes overlap the following slot even when m_BufferLength is sufficient.
+            var newBufferLength = math.max(m_BufferLength, math.ceilpow2(value * m_Capacity));
             var newBuffer = AllocatorManager.Allocate<byte>(m_Allocator, newBufferLength);
             if (m_Buffer != null && m_SlotCapacity > 0)
             {

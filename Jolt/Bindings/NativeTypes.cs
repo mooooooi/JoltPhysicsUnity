@@ -8,36 +8,6 @@ namespace Jolt
         public int _unused;
     }
 
-    public unsafe partial struct JPH_BodyInterface
-    {
-        public int _unused;
-    }
-
-    public unsafe partial struct JPH_NarrowPhaseQuery
-    {
-        public int _unused;
-    }
-
-    public unsafe partial struct JPH_Body
-    {
-        public int _unused;
-    }
-
-    public unsafe partial struct JPH_CharacterVirtual
-    {
-        public int _unused;
-    }
-
-    public unsafe partial struct JPH_PhysicsSystemState
-    {
-        public int _unused;
-    }
-
-    public unsafe partial struct JPH_Constraint
-    {
-        public int _unused;
-    }
-
     [System.Flags]
     public enum JPH_DebugDrawBodyFlags : uint
     {
@@ -112,39 +82,230 @@ namespace Jolt
     }
 
     [StructLayout(LayoutKind.Sequential)]
+    public struct JPH_DODContinuationCounts
+    {
+        public uint bodyContinuationCount;
+        public uint constraintContinuationCount;
+        public uint characterContinuationCount;
+        public uint characterContactContinuationCount;
+        public uint bodyPairContinuationCount;
+        public uint manifoldContinuationCount;
+        public uint contactPointContinuationCount;
+        public uint reserved0;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct JPH_DODGlobalContinuation
+    {
+        public uint version;
+        public float previousStepDeltaTime;
+        public float3 gravity;
+        public uint reserved0;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct JPH_DODContinuationSleepSphere
+    {
+        public float3 center;
+        public float radius;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct JPH_DODRigidTransform
+    {
+        public quaternion rotation;
+        public float3 position;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct JPH_DODBodyContinuation
+    {
+        public ulong entityID;
+        public ulong topologyHash;
+        public float3 accumulatedForce;
+        public float3 accumulatedTorque;
+        public float3 sleepTestOffset;
+        public JPH_DODContinuationSleepSphere sleepTestSphere0;
+        public JPH_DODContinuationSleepSphere sleepTestSphere1;
+        public JPH_DODContinuationSleepSphere sleepTestSphere2;
+        public float sleepTestTimer;
+        public uint activeIndex;
+        public byte active;
+        public byte reserved0;
+        public byte reserved1;
+        public byte reserved2;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct JPH_DODConstraintContinuation
+    {
+        public ulong entityID;
+        public ulong topologyHash;
+        public float3 positionLambda;
+        public float3 rotationLambda;
+        public float3 worldSpaceNormal;
+        public float scalarLambda;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct JPH_DODCharacterContinuation
+    {
+        public ulong entityID;
+        public ulong topologyHash;
+        public ulong groundEntityID;
+        public JPH_DODRigidTransform worldFromCharacter;
+        public float3 linearVelocity;
+        public float3 groundPosition;
+        public float3 groundNormal;
+        public float3 groundVelocity;
+        public float lastDeltaTime;
+        public uint groundSubShapeID;
+        public uint firstContact;
+        public uint contactCount;
+        public byte groundState;
+        public byte maxHitsExceeded;
+        public ushort reserved0;
+    }
+
+    [StructLayout(LayoutKind.Sequential, Size = 88)]
+    public struct JPH_DODCharacterContactContinuation
+    {
+        public ulong bodyEntityID;
+        public ulong characterEntityID;
+        public float3 position;
+        public float3 linearVelocity;
+        public float3 contactNormal;
+        public float3 surfaceNormal;
+        public float distance;
+        public float fraction;
+        public uint subShapeID;
+        public byte motionType;
+        public byte isSensor;
+        public byte hadCollision;
+        public byte wasDiscarded;
+        public byte canPushCharacter;
+        public byte reserved0;
+        public byte reserved1;
+        public byte reserved2;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct JPH_DODBodyPairContinuation
+    {
+        public ulong entityA;
+        public ulong entityB;
+        public float3 deltaPosition;
+        public float3 deltaRotation;
+        public uint firstManifold;
+        public uint manifoldCount;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct JPH_DODManifoldContinuation
+    {
+        public ulong entity1;
+        public ulong entity2;
+        public uint subShapeID1;
+        public uint subShapeID2;
+        public float3 contactNormal;
+        public uint firstContactPoint;
+        public ushort contactPointCount;
+        public byte isCCD;
+        public byte reserved0;
+        public uint reserved1;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct JPH_DODContactPointContinuation
+    {
+        public float3 position1;
+        public float3 position2;
+        public float nonPenetrationLambda;
+        public float frictionLambda1;
+        public float frictionLambda2;
+    }
+
+    public enum JPH_FullStateSyncStatus
+    {
+        Success = 0,
+        InvalidArgument = 1,
+        InvalidLayout = 2,
+        NonCanonicalOrder = 3,
+        CapacityExceeded = 4,
+        TopologyMismatch = 5,
+        GlobalFailed = 6,
+        BodiesFailed = 7,
+        BroadPhaseFailed = 8,
+        ContactsFailed = 9,
+        ConstraintsFailed = 10,
+        CharactersFailed = 11,
+        InternalError = 12,
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct JPH_DODCharacterDefinition
+    {
+        public ulong entityID;
+        public float capsuleHalfHeightOfCylinder;
+        public float capsuleRadius;
+        public float3 up;
+        public float3 shapeOffset;
+        public float supportingVolumeConstant;
+        public float maxSlopeAngle;
+        public float mass;
+        public float maxStrength;
+        public float predictiveContactDistance;
+        public uint maxCollisionIterations;
+        public uint maxConstraintIterations;
+        public float minTimeRemaining;
+        public float collisionTolerance;
+        public float characterPadding;
+        public uint maxNumHits;
+        public float hitReductionCosMaxAngle;
+        public float penetrationRecoverySpeed;
+        public uint characterID;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct JPH_DODWorldDefinition
+    {
+        public JPH_DODBuffer rigidBodies;
+        public JPH_DODBuffer motionDatas;
+        public JPH_DODBuffer motionVelocities;
+        public JPH_DODBuffer joints;
+        public JPH_DODBuffer characterDefinitions;
+        public uint secondaryBodyCount;
+        public uint dynamicBodyCount;
+        public uint staticBodyCount;
+        public uint reserved0;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct JPH_DODContinuationState
+    {
+        public JPH_DODGlobalContinuation global;
+        public JPH_DODBuffer bodies;
+        public JPH_DODBuffer constraints;
+        public JPH_DODBuffer characters;
+        public JPH_DODBuffer characterContacts;
+        public JPH_DODBuffer bodyPairs;
+        public JPH_DODBuffer manifolds;
+        public JPH_DODBuffer contactPoints;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct JPH_DODFullStateIn
+    {
+        public JPH_DODWorldDefinition definition;
+        public JPH_DODContinuationState continuation;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
     public struct JPH_EntityRayCastResult
     {
         public ulong entityID;
         public float fraction;
         public uint subShapeID2;
-    }
-
-    public unsafe partial struct JPH_BroadPhaseLayerFilter
-    {
-        public int _unused;
-    }
-
-    public unsafe partial struct JPH_ObjectLayerFilter
-    {
-        public int _unused;
-    }
-
-    public unsafe partial struct JPH_BodyFilter
-    {
-        public int _unused;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct JPH_ObjectLayerFilter_Procs
-    {
-        public System.IntPtr ShouldCollide;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct JPH_BodyFilter_Procs
-    {
-        public System.IntPtr ShouldCollide;
-        public System.IntPtr ShouldCollideLocked;
     }
 
     public unsafe partial struct JPH_ShapeFilter
@@ -304,14 +465,6 @@ namespace Jolt
     {
         public float3 origin;
         public float3 direction;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct JPH_RayCastResult
-    {
-        public uint bodyID;
-        public float fraction;
-        public uint subShapeID2;
     }
 
     [StructLayout(LayoutKind.Sequential)]
