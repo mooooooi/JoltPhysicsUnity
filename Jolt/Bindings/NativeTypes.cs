@@ -46,43 +46,31 @@ namespace Jolt
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    public unsafe struct JPH_DODBuffer
+    public unsafe struct JPH_StridedBufferView
     {
         public void* data;
         public uint stride;
         public uint count;
     }
 
+    /// <summary>
+    /// Complete dense simulation world view. Dynamic bodies occupy the first range and own the
+    /// same-index motion slots; static bodies follow and end with the Entity.Null default static.
+    /// Native Jolt owns all entity-to-body/constraint reconciliation for this view.
+    /// </summary>
     [StructLayout(LayoutKind.Sequential)]
-    public unsafe struct JPH_WorldSyncIn
+    public unsafe struct JPH_PhysicsWorldView
     {
-        public JPH_DODBuffer rigidBodies;
-        public JPH_DODBuffer motionDatas;
-        public JPH_DODBuffer motionVelocities;
-        public JPH_DODBuffer bodyEntries;
-        public JPH_DODBuffer joints;
-        public JPH_DODBuffer jointEntries;
-        public JPH_DODBuffer jointHandlesByEntry;
-        public uint dynamicBodyStartIndex;
+        public JPH_StridedBufferView rigidBodies;
+        public JPH_StridedBufferView motionDatas;
+        public JPH_StridedBufferView motionVelocities;
+        public JPH_StridedBufferView joints;
         public uint dynamicBodyCount;
+        public uint staticBodyCount;
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    public unsafe struct JPH_WorldSyncOut
-    {
-        public JPH_DODBuffer rigidBodies;
-        public JPH_DODBuffer motionDatas;
-        public JPH_DODBuffer motionVelocities;
-        public JPH_DODBuffer outputMotionDatas;
-        public JPH_DODBuffer outputMotionVelocities;
-        public uint dynamicBodyStartIndex;
-        public uint bodyStartIndex;
-        public uint outputStartIndex;
-        public uint count;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct JPH_DODContinuationCounts
+    public struct JPH_PhysicsStateContinuationCounts
     {
         public uint bodyContinuationCount;
         public uint constraintContinuationCount;
@@ -95,7 +83,7 @@ namespace Jolt
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    public struct JPH_DODGlobalContinuation
+    public struct JPH_PhysicsStateGlobalContinuation
     {
         public uint version;
         public float previousStepDeltaTime;
@@ -104,30 +92,30 @@ namespace Jolt
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    public struct JPH_DODContinuationSleepSphere
+    public struct JPH_SleepTestSphere
     {
         public float3 center;
         public float radius;
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    public struct JPH_DODRigidTransform
+    public struct JPH_RigidTransform
     {
         public quaternion rotation;
         public float3 position;
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    public struct JPH_DODBodyContinuation
+    public struct JPH_BodyStateContinuation
     {
         public ulong entityID;
         public ulong topologyHash;
         public float3 accumulatedForce;
         public float3 accumulatedTorque;
         public float3 sleepTestOffset;
-        public JPH_DODContinuationSleepSphere sleepTestSphere0;
-        public JPH_DODContinuationSleepSphere sleepTestSphere1;
-        public JPH_DODContinuationSleepSphere sleepTestSphere2;
+        public JPH_SleepTestSphere sleepTestSphere0;
+        public JPH_SleepTestSphere sleepTestSphere1;
+        public JPH_SleepTestSphere sleepTestSphere2;
         public float sleepTestTimer;
         public uint activeIndex;
         public byte active;
@@ -137,7 +125,7 @@ namespace Jolt
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    public struct JPH_DODConstraintContinuation
+    public struct JPH_ConstraintStateContinuation
     {
         public ulong entityID;
         public ulong topologyHash;
@@ -148,12 +136,12 @@ namespace Jolt
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    public struct JPH_DODCharacterContinuation
+    public struct JPH_CharacterStateContinuation
     {
         public ulong entityID;
         public ulong topologyHash;
         public ulong groundEntityID;
-        public JPH_DODRigidTransform worldFromCharacter;
+        public JPH_RigidTransform worldFromCharacter;
         public float3 linearVelocity;
         public float3 groundPosition;
         public float3 groundNormal;
@@ -168,7 +156,7 @@ namespace Jolt
     }
 
     [StructLayout(LayoutKind.Sequential, Size = 88)]
-    public struct JPH_DODCharacterContactContinuation
+    public struct JPH_CharacterContactStateContinuation
     {
         public ulong bodyEntityID;
         public ulong characterEntityID;
@@ -190,7 +178,7 @@ namespace Jolt
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    public struct JPH_DODBodyPairContinuation
+    public struct JPH_BodyPairStateContinuation
     {
         public ulong entityA;
         public ulong entityB;
@@ -201,7 +189,7 @@ namespace Jolt
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    public struct JPH_DODManifoldContinuation
+    public struct JPH_ManifoldStateContinuation
     {
         public ulong entity1;
         public ulong entity2;
@@ -216,7 +204,7 @@ namespace Jolt
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    public struct JPH_DODContactPointContinuation
+    public struct JPH_ContactPointStateContinuation
     {
         public float3 position1;
         public float3 position2;
@@ -243,7 +231,7 @@ namespace Jolt
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    public struct JPH_DODCharacterDefinition
+    public struct JPH_CharacterDefinition
     {
         public ulong entityID;
         public float capsuleHalfHeightOfCylinder;
@@ -267,13 +255,13 @@ namespace Jolt
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    public unsafe struct JPH_DODWorldDefinition
+    public unsafe struct JPH_PhysicsWorldDefinition
     {
-        public JPH_DODBuffer rigidBodies;
-        public JPH_DODBuffer motionDatas;
-        public JPH_DODBuffer motionVelocities;
-        public JPH_DODBuffer joints;
-        public JPH_DODBuffer characterDefinitions;
+        public JPH_StridedBufferView rigidBodies;
+        public JPH_StridedBufferView motionDatas;
+        public JPH_StridedBufferView motionVelocities;
+        public JPH_StridedBufferView joints;
+        public JPH_StridedBufferView characterDefinitions;
         public uint secondaryBodyCount;
         public uint dynamicBodyCount;
         public uint staticBodyCount;
@@ -281,23 +269,23 @@ namespace Jolt
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    public unsafe struct JPH_DODContinuationState
+    public unsafe struct JPH_PhysicsWorldContinuationState
     {
-        public JPH_DODGlobalContinuation global;
-        public JPH_DODBuffer bodies;
-        public JPH_DODBuffer constraints;
-        public JPH_DODBuffer characters;
-        public JPH_DODBuffer characterContacts;
-        public JPH_DODBuffer bodyPairs;
-        public JPH_DODBuffer manifolds;
-        public JPH_DODBuffer contactPoints;
+        public JPH_PhysicsStateGlobalContinuation global;
+        public JPH_StridedBufferView bodies;
+        public JPH_StridedBufferView constraints;
+        public JPH_StridedBufferView characters;
+        public JPH_StridedBufferView characterContacts;
+        public JPH_StridedBufferView bodyPairs;
+        public JPH_StridedBufferView manifolds;
+        public JPH_StridedBufferView contactPoints;
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    public unsafe struct JPH_DODFullStateIn
+    public unsafe struct JPH_PhysicsWorldStateInput
     {
-        public JPH_DODWorldDefinition definition;
-        public JPH_DODContinuationState continuation;
+        public JPH_PhysicsWorldDefinition definition;
+        public JPH_PhysicsWorldContinuationState continuation;
     }
 
     [StructLayout(LayoutKind.Sequential)]
