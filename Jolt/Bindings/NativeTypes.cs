@@ -129,10 +129,43 @@ namespace Jolt
     {
         public ulong entityID;
         public ulong topologyHash;
-        public float3 positionLambda;
-        public float3 rotationLambda;
-        public float3 worldSpaceNormal;
-        public float scalarLambda;
+        public uint stateSize;
+        public byte kind;
+        public byte reserved0;
+        public byte reserved1;
+        public byte reserved2;
+        public ulong state0;
+        public ulong state1;
+        public ulong state2;
+        public ulong state3;
+        public ulong state4;
+        public ulong state5;
+        public ulong state6;
+        public ulong state7;
+        public ulong state8;
+        public ulong state9;
+        public ulong state10;
+        public ulong state11;
+        public ulong state12;
+        public ulong state13;
+        public ulong state14;
+        public ulong state15;
+        public ulong state16;
+        public ulong state17;
+        public ulong state18;
+        public ulong state19;
+        public ulong state20;
+        public ulong state21;
+        public ulong state22;
+        public ulong state23;
+        public ulong state24;
+        public ulong state25;
+        public ulong state26;
+        public ulong state27;
+        public ulong state28;
+        public ulong state29;
+        public ulong state30;
+        public ulong state31;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -366,6 +399,8 @@ namespace Jolt
     {
         Fixed = 1,
         Distance = 2,
+        Hinge = 3,
+        SwingTwist = 4,
     }
 
     public enum JPH_ConstraintSpace : byte
