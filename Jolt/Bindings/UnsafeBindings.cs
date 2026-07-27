@@ -155,6 +155,14 @@ namespace Jolt
 
         [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("uint8_t")]
+        public static extern byte JPH_PhysicsSystem_CastRayBroadPhaseEntity(JPH_PhysicsSystem* system, [NativeTypeName("const JPH_RayCast *")] JPH_RayCast* ray, JPH_EntityRayCastResult* hit);
+
+        [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("uint32_t")]
+        public static extern uint JPH_PhysicsSystem_CastRayAllBroadPhaseEntities(JPH_PhysicsSystem* system, [NativeTypeName("const JPH_RayCast *")] JPH_RayCast* ray, JPH_EntityRayCastResult* hits, [NativeTypeName("uint32_t")] uint maxHits);
+
+        [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("uint8_t")]
         public static extern byte JPH_PhysicsSystem_CreateCharacterVirtual(JPH_PhysicsSystem* system, [NativeTypeName("const JPH_CharacterVirtualCreation *")] JPH_CharacterVirtualCreation* creation);
 
         [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
