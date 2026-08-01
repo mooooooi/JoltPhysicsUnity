@@ -33,11 +33,23 @@ namespace Jolt
 
         [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("uint8_t")]
+        public static extern byte JPH_PhysicsSystem_SetContactSettings(JPH_PhysicsSystem* system, float penetrationSlop, float linearCastThreshold, float linearCastMaxPenetration);
+
+        [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("uint8_t")]
         public static extern byte JPH_PhysicsSystem_ShouldCollide([NativeTypeName("const JPH_PhysicsSystem *")] JPH_PhysicsSystem* system, [NativeTypeName("uint32_t")] uint objectLayer1, [NativeTypeName("uint32_t")] uint objectLayer2);
 
         [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("uint8_t")]
         public static extern byte JPH_PhysicsSystem_DrawDebugLines(JPH_PhysicsSystem* system, [NativeTypeName("const JPH_DebugDrawSettings *")] JPH_DebugDrawSettings* settings, JPH_DebugDrawLine* lines, [NativeTypeName("uint32_t")] uint lineCapacity, [NativeTypeName("uint32_t *")] uint* requiredLineCount);
+
+        [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("uint8_t")]
+        public static extern byte JPH_PhysicsSystem_DrawDebugGeometry(JPH_PhysicsSystem* system, [NativeTypeName("const JPH_DebugDrawSettings *")] JPH_DebugDrawSettings* settings, JPH_DebugDrawLine* lines, [NativeTypeName("uint32_t")] uint lineCapacity, [NativeTypeName("uint32_t *")] uint* requiredLineCount, JPH_DebugDrawGeometryInstance* instances, [NativeTypeName("uint32_t")] uint instanceCapacity, [NativeTypeName("uint32_t *")] uint* requiredInstanceCount);
+
+        [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        [return: NativeTypeName("uint8_t")]
+        public static extern byte JPH_DebugDraw_GetGeometryBatch([NativeTypeName("uint32_t")] uint batchID, JPH_DebugDrawVertex* vertices, [NativeTypeName("uint32_t")] uint vertexCapacity, [NativeTypeName("uint32_t *")] uint* requiredVertexCount, [NativeTypeName("uint32_t *")] uint* indices, [NativeTypeName("uint32_t")] uint indexCapacity, [NativeTypeName("uint32_t *")] uint* requiredIndexCount);
 
         [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("uint8_t")]
@@ -47,10 +59,9 @@ namespace Jolt
         [return: NativeTypeName("uint8_t")]
         public static extern byte JPH_PhysicsSystem_SyncPhysicsWorldOut(JPH_PhysicsSystem* system, [NativeTypeName("const JPH_PhysicsWorldView *")] JPH_PhysicsWorldView* world);
 
-        // NativeTypeName records the shipped C ABI spelling; managed types use semantic names.
         [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("uint8_t")]
-        public static extern byte JPH_PhysicsSystem_CanonicalizeJoints([NativeTypeName("const JPH_PhysicsSystem *")] JPH_PhysicsSystem* system, [NativeTypeName("const JPH_DODWorldDefinition *")] JPH_PhysicsWorldDefinition* authoredDefinition, JPH_StridedBufferView* canonicalJoints);
+        public static extern byte JPH_PhysicsSystem_CanonicalizeJoints([NativeTypeName("const JPH_PhysicsSystem *")] JPH_PhysicsSystem* system, [NativeTypeName("const JPH_PhysicsWorldDefinition *")] JPH_PhysicsWorldDefinition* authoredDefinition, JPH_StridedBufferView* canonicalJoints);
 
         [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("uint64_t")]
@@ -66,25 +77,25 @@ namespace Jolt
 
         [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("uint8_t")]
-        public static extern byte JPH_PhysicsSystem_CaptureBodyContinuations(JPH_PhysicsSystem* system, [NativeTypeName("const JPH_DODWorldDefinition *")] JPH_PhysicsWorldDefinition* definition, JPH_StridedBufferView* bodies, [NativeTypeName("uint32_t *")] uint* actualCount);
+        public static extern byte JPH_PhysicsSystem_CaptureBodyContinuations(JPH_PhysicsSystem* system, [NativeTypeName("const JPH_PhysicsWorldDefinition *")] JPH_PhysicsWorldDefinition* definition, JPH_StridedBufferView* bodies, [NativeTypeName("uint32_t *")] uint* actualCount);
 
         [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("uint8_t")]
-        public static extern byte JPH_PhysicsSystem_CaptureContactContinuations(JPH_PhysicsSystem* system, [NativeTypeName("const JPH_DODWorldDefinition *")] JPH_PhysicsWorldDefinition* definition, JPH_StridedBufferView* bodyPairs, JPH_StridedBufferView* manifolds, JPH_StridedBufferView* contactPoints, JPH_PhysicsStateContinuationCounts* actualCounts);
+        public static extern byte JPH_PhysicsSystem_CaptureContactContinuations(JPH_PhysicsSystem* system, [NativeTypeName("const JPH_PhysicsWorldDefinition *")] JPH_PhysicsWorldDefinition* definition, JPH_StridedBufferView* bodyPairs, JPH_StridedBufferView* manifolds, JPH_StridedBufferView* contactPoints, JPH_PhysicsStateContinuationCounts* actualCounts);
 
         [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("uint8_t")]
-        public static extern byte JPH_PhysicsSystem_CaptureConstraintContinuations(JPH_PhysicsSystem* system, [NativeTypeName("const JPH_DODWorldDefinition *")] JPH_PhysicsWorldDefinition* definition, JPH_StridedBufferView* constraints, [NativeTypeName("uint32_t *")] uint* actualCount);
+        public static extern byte JPH_PhysicsSystem_CaptureConstraintContinuations(JPH_PhysicsSystem* system, [NativeTypeName("const JPH_PhysicsWorldDefinition *")] JPH_PhysicsWorldDefinition* definition, JPH_StridedBufferView* constraints, [NativeTypeName("uint32_t *")] uint* actualCount);
 
         [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("uint8_t")]
-        public static extern byte JPH_PhysicsSystem_CaptureCharacterContinuations(JPH_PhysicsSystem* system, [NativeTypeName("const JPH_DODWorldDefinition *")] JPH_PhysicsWorldDefinition* definition, JPH_StridedBufferView* characters, JPH_StridedBufferView* characterContacts, JPH_PhysicsStateContinuationCounts* actualCounts);
+        public static extern byte JPH_PhysicsSystem_CaptureCharacterContinuations(JPH_PhysicsSystem* system, [NativeTypeName("const JPH_PhysicsWorldDefinition *")] JPH_PhysicsWorldDefinition* definition, JPH_StridedBufferView* characters, JPH_StridedBufferView* characterContacts, JPH_PhysicsStateContinuationCounts* actualCounts);
 
         [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern JPH_FullStateSyncStatus JPH_PhysicsSystem_ValidateFullState([NativeTypeName("const JPH_PhysicsSystem *")] JPH_PhysicsSystem* system, [NativeTypeName("const JPH_DODFullStateIn *")] JPH_PhysicsWorldStateInput* fullState);
+        public static extern JPH_FullStateSyncStatus JPH_PhysicsSystem_ValidateFullState([NativeTypeName("const JPH_PhysicsSystem *")] JPH_PhysicsSystem* system, [NativeTypeName("const JPH_PhysicsWorldStateInput *")] JPH_PhysicsWorldStateInput* fullState);
 
         [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern JPH_FullStateSyncStatus JPH_PhysicsSystem_SyncFullStateIn(JPH_PhysicsSystem* system, [NativeTypeName("const JPH_DODFullStateIn *")] JPH_PhysicsWorldStateInput* fullState);
+        public static extern JPH_FullStateSyncStatus JPH_PhysicsSystem_SyncFullStateIn(JPH_PhysicsSystem* system, [NativeTypeName("const JPH_PhysicsWorldStateInput *")] JPH_PhysicsWorldStateInput* fullState);
 
         [DllImport("joltc", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         public static extern void JPH_PhysicsSystem_ClearBodies(JPH_PhysicsSystem* system);

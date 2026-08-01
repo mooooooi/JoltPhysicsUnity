@@ -1,6 +1,6 @@
 ﻿# JoltPhysicsUnity
 
-Version 0.2.0 is a breaking 0.x release. It retains the Entity-keyed typed complete-state contract introduced in 0.1.0 and adds the 64-byte joint-definition ABI plus pure pre-mutation joint canonicalization. Fixed definitions persist local-COM anchors and a canonical inverse orientation; Distance definitions persist local-COM anchors, resolved limits, and complete spring settings. The full-state fingerprint is `0x4A4F4C5452500004`; binaries and payloads from earlier layouts are rejected.
+Version 0.2.0 is a breaking 0.x release. It retains the Entity-keyed typed complete-state contract introduced in 0.1.0 and adds the 64-byte joint-definition ABI plus pure pre-mutation joint canonicalization. Fixed definitions persist local-COM anchors and a canonical inverse orientation; Distance definitions persist local-COM anchors, resolved limits, and complete spring settings. The full-state fingerprint is `0x4A4F4C5452500005`; binaries and payloads from earlier layouts are rejected.
 
 The package is inspired by [amerkoleci](https://github.com/amerkoleci)
 
@@ -11,10 +11,16 @@ package for unmanaged collections.
 The active runtime surface is the minimal Entity-keyed `JPH_*` glue in `Jolt/Bindings`, plus `Jolt.LowLevel.World`.
 The generated ABI exposes no BodyInterface, NarrowPhaseQuery, native body/constraint/character pointer,
 or opaque recorder state. Unsupported full-joltc APIs fail at compile time instead of silently executing
-no-op compatibility shells. Native body diagnostics are exposed as a bounded
-`JPH_PhysicsSystem_DrawDebugLines` wireframe buffer instead of reverse-P/Invoke renderer callbacks.
-Complete `PhysicsWorldState` synchronization uses typed continuation counts/capture exports and
-`JPH_PhysicsSystem_ValidateFullState` / `JPH_PhysicsSystem_SyncFullStateIn`. Authored joint arrays are copied and passed through `JPH_PhysicsSystem_CanonicalizeJoints` before live mutation; the caller's arrays are never rewritten. Native restore constructs a
+no-op compatibility shells. Native body diagnostics expose Jolt-selected triangle-batch LOD instances
+plus a bounded auxiliary-line buffer, avoiding reverse-P/Invoke renderer callbacks and per-edge managed
+transport. The cached LOD batches and auxiliary lines are submitted through ALINE's normal
+camera path, so Game and Scene views use the same debug-rendering channel. ALINE can also use its
+experimental `DrawingManager.renderBackend = RenderBackend.BatchRendererGroup` path for solid and
+line primitive meshes; text remains on its command-buffer path, and `CommandBuffer` stays the default.
+Dense-world ABI records use responsibility-based names such as
+`JPH_PhysicsWorldDefinition` and `JPH_PhysicsWorldStateInput`; legacy `JPH_DOD*` spellings are not
+part of the supported surface. Complete `PhysicsWorldState` synchronization uses typed continuation
+counts/capture exports and `JPH_PhysicsSystem_ValidateFullState` / `JPH_PhysicsSystem_SyncFullStateIn`. Authored joint arrays are copied and passed through `JPH_PhysicsSystem_CanonicalizeJoints` before live mutation; the caller's arrays are never rewritten. Native restore constructs a
 canonical shadow runtime in Global → Bodies → broadphase → Contacts → Constraints → Characters order,
 then swaps the stable runtime slot only after every phase succeeds. Every cross-object reference crosses
 the ABI as a logical Entity key while Jolt native handles remain native-only. A fingerprint export is

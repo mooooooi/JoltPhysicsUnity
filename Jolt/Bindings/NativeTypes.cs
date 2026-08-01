@@ -45,6 +45,33 @@ namespace Jolt
         public uint color;
     }
 
+    [System.Flags]
+    public enum JPH_DebugDrawGeometryFlags : uint
+    {
+        None = 0,
+        Wireframe = 1u << 0,
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct JPH_DebugDrawVertex
+    {
+        public float3 position;
+        public uint color;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct JPH_DebugDrawGeometryInstance
+    {
+        public uint batchID;
+        public uint color;
+        public JPH_DebugDrawGeometryFlags flags;
+        public uint reserved0;
+        public float3 axisX;
+        public float3 axisY;
+        public float3 axisZ;
+        public float3 translation;
+    }
+
     [StructLayout(LayoutKind.Sequential)]
     public unsafe struct JPH_StridedBufferView
     {
